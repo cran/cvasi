@@ -74,10 +74,11 @@ ExposureSeries <- function(series, dates, file, meta, context) {
 #' @examples
 #' # this will reset the output times of the sample scenario,
 #' # simulate() will quit with an error
-#' \dontrun{
-#' minnow_it %>%
-#'   set_exposure(no_exposure()) %>%
-#'   simulate()}
+#' try(
+#'   minnow_it %>%
+#'     set_exposure(no_exposure()) %>%
+#'     simulate()
+#' )
 #'
 #' # set zero exposure, but keep original output times
 #' minnow_it %>%

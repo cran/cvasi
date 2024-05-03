@@ -28,9 +28,7 @@ setClass("parameter_set",
 #'   set_param(ps)
 #'
 #' # model names must match, otherwise an error will be raised
-#' \dontrun{
-#' GUTS_RED_SD() %>% set_param(ps)
-#' }
+#' try(GUTS_RED_SD() %>% set_param(ps))
 parameter_set <- function(model, param=list(), tag=NA_character_) {
   if(!is.character(model))
     stop("model name must be of type character")

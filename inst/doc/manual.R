@@ -8,35 +8,39 @@ knitr::opts_chunk$set(
 ## ----setup, include=FALSE-----------------------------------------------------
 library(cvasi)
 
-## ---- eval=FALSE--------------------------------------------------------------
-#  library(cvasi)
-#  
-#  ## Sample base R workflow ##
-#  # Create a scenario object of model GUTS-RED-IT
-#  my_it <- GUTS_RED_IT()
-#  # Set model parameters
-#  my_it <- set_param(my_it, c(kd=1.2, hb=0, alpha=9.2, beta=4.3))
-#  # Print scenario details
-#  my_it
+## -----------------------------------------------------------------------------
+library(cvasi)
 
-## ---- eval=FALSE--------------------------------------------------------------
-#  ## Sample tidy R workflow ##
-#  # the pipeline (%>%) symbol passes results to the next statement
-#  GUTS_RED_IT() %>%
-#    set_param(c(kd=1.2, hb=0, alpha=9.2, beta=4.3))
+## Sample base R workflow ##
+# Create a scenario object of model GUTS-RED-IT
+my_it <- GUTS_RED_IT()
+# Set model parameters
+my_it <- set_param(my_it, c(kd=1.2, hb=0, alpha=9.2, beta=4.3))
+# Print scenario details
+my_it
+
+## -----------------------------------------------------------------------------
+## Example 'tidyr' workflow ##
+# the pipeline (%>%) symbol passes results to the next statement
+GUTS_RED_IT() %>%
+  set_param(c(kd=1.2, hb=0, alpha=9.2, beta=4.3))
+
+## ----eval=FALSE,include=FALSE-------------------------------------------------
+#  install.packages("cvasi", dependencies=TRUE)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  install.packages("cvasi", dependencies=TRUE)
+#  install.packages("remotes", dependencies=TRUE)
+#  remotes::install_github("cvasi-tktd/cvasi", dependencies=TRUE)
 
 ## -----------------------------------------------------------------------------
 library(cvasi)
 
-# Create a new and empty GUTS-RED-IT scenario and set its parameters
+# Create a new GUTS-RED-IT scenario and set its model parameters
 GUTS_RED_IT() %>%
   set_param(c(kd=1.2, hb=0, alpha=9.2, beta=4.3))
 
 ## -----------------------------------------------------------------------------
-# Sample GUTS-RED-IT scenario derived from an acute fish toxicity study
+# Example GUTS-RED-IT scenario derived from an acute fish toxicity study
 # of the fathead minnow and Chlorpyrifos (Geiger et al. 1988)
 minnow_it %>%
   simulate()
@@ -47,7 +51,8 @@ minnow_it %>%
 
 ## -----------------------------------------------------------------------------
 # Define an exposure time-series
-myexposure <- data.frame(time = c(0, 1, 1.01, 5), conc = c(10, 10, 0, 0))
+myexposure <- data.frame(time=c(0, 1, 1.01, 5),
+                         conc=c(10, 10, 0, 0))
 
 # Create and parameterize a scenario
 GUTS_RED_IT() %>%
@@ -78,10 +83,10 @@ DEB_abj() %>%
   set_exposure(myexposure) %>%
   set_times(0:10) %>%             # Output times 0,1,2,...,10
   set_mode_of_action(4) %>%       # Method of Action #4 to be activated
-  set_window(length=3) -> mydeb   # Using moving exposure windows of length 3 days
+  set_window(length=3)            # Using moving exposure windows of length 3 days
 
 ## -----------------------------------------------------------------------------
-# Sample scenario of the Lemna TKTD model
+# Example scenario of the Lemna TKTD model
 metsulfuron %>%
   set_times(0:7) %>%
   simulate()
@@ -97,10 +102,10 @@ metsulfuron %>%
 # Original simulation period, but with a maximum solver step length of hmax=0.01
 metsulfuron %>%
   set_times(0:7) %>%
-  simulate(hmax = 1)
+  simulate(hmax=0.01)
 
 ## ---- eval=FALSE--------------------------------------------------------------
-#  ?simulate
+#  ?cvasi::simulate
 
 ## -----------------------------------------------------------------------------
 # GUTS-RED-IT scenario of the fathead minnow and chlorpyrifos
@@ -136,36 +141,8 @@ mydeb %>%
 testthat::expect_equal(mydeb %>%  set_endpoints("L") %>% epx(ep_only=TRUE) %>% unlist(), c(1.162598, 1.711914), ignore_attr=TRUE, tolerance=0.01)
 
 ## -----------------------------------------------------------------------------
-# Examine how the EP23 value is derived
+# Examine how the EP20 value is derived
 minnow_it %>% epx(level=20, verbose=TRUE)
-
-## -----------------------------------------------------------------------------
-# Exposure data in the highest treatment level
-exp_df <- Schmitt2013 %>% 
-  dplyr::filter(ID == "T5.6") %>%
-  dplyr::select(t, conc) 
-# Exposure scenario containing the exposure data in the highest treatment level
-exp_scen <- metsulfuron %>% 
-     set_exposure(exp_df, reset_times = FALSE)
-# Create corresponding effect data
-# Observed effects in the highest treatment level   
-eff_df <- Schmitt2013 %>%   
-  dplyr::filter(ID == "T5.6") %>%
-  dplyr::select(t, obs)
-# calibration 
-fit1 <- calibrate(
-  x = exp_scen, 
-  par = c(KiN = 300),
-  data = eff_df, 
-  endpoint = "BM"
-  )
-
-## -----------------------------------------------------------------------------
-fit1$fit[[1]]$par
-fit1$fit
-
-## -----------------------------------------------------------------------------
-fit1$scenario
 
 ## -----------------------------------------------------------------------------
 ## Display selected scenario properties

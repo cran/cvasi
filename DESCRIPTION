@@ -1,7 +1,7 @@
 Package: cvasi
 Type: Package
 Title: Calibration, Validation, and Simulation of TKTD Models
-Version: 0.10.4
+Version: 0.10.5
 Authors@R: c(
     person("Nils", "Kehrein", email="nils.kehrein@gmail.com", role=c("aut", "cre")),
     person("Dirk", "Nickisch", role="aut"),
@@ -43,11 +43,11 @@ VignetteBuilder: knitr
 Config/roxyglobals/filename: globals.R
 Config/roxyglobals/unique: FALSE
 NeedsCompilation: yes
-Packaged: 2024-05-01 07:15:43 UTC; ENCAZ
+Packaged: 2024-05-02 13:51:43 UTC; ENCAZ
 Author: Nils Kehrein [aut, cre],
   Dirk Nickisch [aut],
   Johannes Witt [ctb],
   Andre Gergs [ctb]
 Maintainer: Nils Kehrein <nils.kehrein@gmail.com>
 Repository: CRAN
-Date/Publication: 2024-05-02 14:42:51 UTC
+Date/Publication: 2024-05-03 23:20:04 UTC

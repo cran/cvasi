@@ -40,25 +40,25 @@ myscenario@control.req  # are control runs required for effect calculation?
 #  # Call the help page of the biomass transfer class
 #  ?Transferable
 
-## ---- eval=FALSE--------------------------------------------------------------
-#  # Create the results of a control run for an existing Lemna model called
-#  # metsulfuron with a starting biomass value of 50, which corresponds to
-#  # 50000 fronds.
-#    metsulfuron %>%
-#      set_noexposure() %>%  # set no exposure (i.e., a control run)
-#      set_init(c(BM = 50)) %>%  # set initial biomass
-#      simulate()
+## -----------------------------------------------------------------------------
+# The example scenario `metsulfuron` based on the Lemna model by Schmitt et al. (2013)
+# is modified by setting a new exposure series and initial state. Then, it is
+# simulated.
+  metsulfuron %>%
+    set_noexposure() %>%  # set no exposure (i.e., a control run)
+    set_init(c(BM = 50)) %>%  # set initial biomass
+    simulate()
 
-## ---- eval=FALSE--------------------------------------------------------------
-#  # Calculation of EPx values for a complete concentration profile.
-#    set.seed(123)  # Setting a seed for reproducibility
-#  # Generating a random profile for 15 days with concentrations below 0.1
-#    random_conc <- runif(15, min=0, max=0.1)
-#    exposure_profile <- data.frame(t=0:14, c=random_conc)
-#  # run EPx calculations for full exposure profile
-#    metsulfuron %>%
-#      set_exposure(exposure_profile) %>%  # set a specific exposure scenario
-#      epx()  # run EPx calculations
+## -----------------------------------------------------------------------------
+# Initialize the random numbers generator
+set.seed(123)
+# Generating a random exposure series spanning 14 days
+random_conc <- runif(15, min=0, max=0.1)
+exposure_profile <- data.frame(time=0:14, conc=random_conc)
+# Run EPx calculations
+minnow_it %>%
+  set_exposure(exposure_profile) %>%  # set a specific exposure scenario
+  epx()  # run EPx calculations
 
 ## -----------------------------------------------------------------------------
 # Derive effect levels of all exposure windows
@@ -74,18 +74,18 @@ metsulfuron %>%
 
 ## -----------------------------------------------------------------------------
 set.seed(123)
-# Generate a random exposure time-series for 15 days with concentrations below 0.1
+# Generate a random exposure series spanning 14 days
 ts <- data.frame(time = 0:14,
                  conc = runif(15, min=0, max=0.1))
 
-# run EPx calculations for a window length of 7 days and a step size of 1
+# Run EPx calculations for a window length of 7 days and a step size of 1 day
 metsulfuron %>%
   set_exposure(ts) %>%
   set_window(length=7, interval=1) %>%
   effect(max_only=FALSE) -> results
 results
 
-# create a plot of effects over time
+# Create a plot of effects over time
 library(ggplot2)
 ggplot(results) +
   geom_point(aes(dat.start, BM*100)) +
@@ -121,103 +121,101 @@ ggplot(result2) +
 #  # Call the help page of set_transfer
 #  ?set_transfer
 
-## -----------------------------------------------------------------------------
+## ----warning=FALSE------------------------------------------------------------
 library(dplyr)
+# No exposure in control scenario
+exposure <- data.frame(time=0:14, conc=0)
 
-# Create Effect Scenario
-# Get exposure time-series of the highest treatment level from Schmitt et al. (2013) study
-exp_df <- Schmitt2013 %>%
-  filter(ID == "T5.6") %>%
-  select(t, conc)
-# Create a scenario containing the exposure time-series
-exp_scen <- metsulfuron %>%
-  set_exposure(exp_df)
-# Get corresponding observed effect data from Schmitt et al. (2013)
-eff_df <- Schmitt2013 %>%
-  filter(ID == "T5.6") %>%
-  select(t, obs)
+# set k_phot_fix, k_resp and Emax to the defaults recommended in Klein et al. (2022)
+# for Tier 2C studies. Set initial biomass to 12.0 (original data is in fronds
+# rather than biomass, but for sake of simplicity, no conversion was performed).
+control <- metsulfuron %>% 
+  set_param(c(k_phot_fix=TRUE, k_resp=0, Emax=1)) %>% 
+  set_init(c(BM=12)) %>%
+  set_exposure(exposure)
+# `metsulfuron` is an example scenario based on Schmitt et al. (2013) and therefore
+# uses the historical, superseded nomenclature by Schmitt et al. We recommend using
+# the newer SETAC Lemna model by Klein et al. (2022) for current applications,
+# see `Lemna_SETAC()` for details.
 
-## -----------------------------------------------------------------------------
-# Option 1: direct calibration with 1 EffectScenario + 1 effect dataset
+# Get control data from Schmitt et al. (2013)
+obs_control <- Schmitt2013 %>%
+  dplyr::filter(ID == "T0") %>%
+  dplyr::select(t, obs)
+
+# Fit parameter `k_phot_max` to observed data
 fit1 <- calibrate(
-  exp_scen,
-  par = c(k_phot_max = 1, k_resp = 0.1, Emax=1),
-  data = eff_df,
-  endpoint = "FrondNo"
+  x = control,
+  par = c(k_phot_max=1),
+  data = obs_control,
+  endpoint = "BM",
+  method="Brent", lower=0, upper=0.5 # Brent is recommended for one-dimensional optimization
 )
 fit1$par
 
-# Update exposure scenario  with new parameter values
-metsulfuron2 <- metsulfuron %>%
+# Update the scenario with fitted parameter and simulate it
+fitted_growth <- control %>% 
   set_param(fit1$par)
+sim_mean <- fitted_growth %>%
+  simulate() %>%
+  mutate(trial="control")
 
-# Simulate updated model
-treatments <- Schmitt2013 %>% select(time=t, trial=ID, conc)
-rs_mean <- simulate_batch(
-  model_base = metsulfuron2,
-  treatments = treatments,
-  param_sample = NULL
-)
-# observations in long format
-obs_mean <- Schmitt2013 %>% select(time=t, trial=ID, data=obs)
-# plot results
+# Exposure and observations in long format for plotting
+treatments <- exposure %>%
+  mutate(trial="control")
+obs_mean <- obs_control %>%
+  mutate(trial="control") %>%
+  select(time=t, trial, data=obs)
+
+# Plot results
 plot_sd(
-  model_base = metsulfuron2,
+  model_base = fitted_growth,
   treatments = treatments,
-  rs_mean = rs_mean,
+  rs_mean = sim_mean,
   obs_mean = obs_mean
 )
 
 ## -----------------------------------------------------------------------------
-#set k_phot_fix, k_resp and Emax to the defaults recommended in Klein et al. (2022) for Tier 2C studies. Set initial biomass to 12 fronds
-metsulfuron_new <- metsulfuron %>%
-  set_param(c(k_phot_fix=T, k_resp=0, Emax=1)) %>%
-  set_init(c(BM=(12 * 1e-4)))
-
-# get all the exposure scenarios from the Schmitt 2013 study
+# get all the trials and exposure series from Schmitt et al. (2013) and create
+# a list of calibration sets
 Schmitt2013 %>%
   group_by(ID) %>%
   group_map(function(data, key) {
     exp <- data %>% select(t, conc)
     obs <- data %>% select(t, obs)
-    obs$obs<- obs$obs*metsulfuron@param$mass_per_frond #data are in terms of fronds, convert to BM
-    sc <- metsulfuron_new %>% set_exposure(exp) 
+    sc <- fitted_growth %>% set_exposure(exp) 
     CalibrationSet(sc, obs)
   }) -> cs
-# Calibrate
-fit1 <- calibrate(
+
+# Fit parameters on results of all trials at once
+fit2 <- calibrate(
   cs,
-  par=c(EC50=0.3, b=4.16, k_phot_max=0.42),
-  endpoint="BM"
+  par=c(EC50=0.3, b=4.16, P_up=0.005),
+  endpoint="BM",
+  method="L-BFGS-B", lower=c(0, 0.1), upper=c(1000, 10)
 )
-fit1$par
+fit2$par
 
-# Update exposure scenario  with new parameter values
-metsulfuron2 <- metsulfuron_new %>%
-  set_param(fit1$par)
+# Update the scenario with fitted parameter and simulate all trials
+fitted_tktd <- fitted_growth %>%
+  set_param(fit2$par)
 
-# simulate with updated model
-# treatments in long format
 treatments <- Schmitt2013 %>% select(time=t, trial=ID, conc)
 rs_mean <- simulate_batch(
-  model_base = metsulfuron2,
-  treatments = treatments,
-  param_sample = NULL
+  model_base = fitted_tktd,
+  treatments = treatments
 )
-
-# observations in long format
+# Observations in long format for plotting
 obs_mean <- Schmitt2013 %>%
-  select(time=t, trial=ID, data=obs) %>%
-  mutate(data=data * 1e-4) # convert fronds to biomass weight
+  select(time=t, trial=ID, data=obs)
 
-# plot results
+# Plot results
 plot_sd(
-  model_base = metsulfuron2,
+  model_base = fitted_tktd,
   treatments = treatments,
   rs_mean = rs_mean,
   obs_mean = obs_mean
 )
-
 
 ## -----------------------------------------------------------------------------
 # base scenario only valid until day 7
@@ -417,8 +415,8 @@ init <- c(
   M_int    = 0       # [ug]   Amount of toxicant in biomass
 )
 
-## create an EffectScenario object, containing the model (with parameters) and the exposure scenario
-Lemna_Schmitt() %>%               # the Lemna model
+## create a scenario object, containing the model (with parameters) and the exposure time-series
+Lemna_Schmitt() %>%               # the Lemna model by Schmitt et al. (2013)
   set_tag("metsulfuron") %>%      # set a tage for the specific implementation of the model
   set_init(init) %>%              # set the starting values (as prepared above)
   set_param(param_study) %>%      # set the parameters (as prepared above)
