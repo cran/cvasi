@@ -140,16 +140,18 @@ control <- metsulfuron %>%
 
 # Get control data from Schmitt et al. (2013)
 obs_control <- Schmitt2013 %>%
-  dplyr::filter(ID == "T0") %>%
-  dplyr::select(t, obs)
+  filter(ID == "T0") %>%
+  select(t, BM=obs)
 
 # Fit parameter `k_phot_max` to observed data
 fit1 <- calibrate(
   x = control,
-  par = c(k_phot_max=1),
+  par = c(k_phot_max = 1),
   data = obs_control,
-  endpoint = "BM",
-  method="Brent", lower=0, upper=0.5 # Brent is recommended for one-dimensional optimization
+  output = "BM",
+  method="Brent", # Brent is recommended for one-dimensional optimization
+  lower=0,        # lower parameter boundary
+  upper=0.5       # upper parameter boundary
 )
 fit1$par
 
@@ -165,7 +167,7 @@ treatments <- exposure %>%
   mutate(trial="control")
 obs_mean <- obs_control %>%
   mutate(trial="control") %>%
-  select(time=t, trial, data=obs)
+  select(time=t, data=BM, trial)
 
 # Plot results
 plot_sd(
@@ -182,17 +184,19 @@ Schmitt2013 %>%
   group_by(ID) %>%
   group_map(function(data, key) {
     exp <- data %>% select(t, conc)
-    obs <- data %>% select(t, obs)
+    obs <- data %>% select(t, BM=obs)
     sc <- fitted_growth %>% set_exposure(exp) 
-    CalibrationSet(sc, obs)
+    caliset(sc, obs)
   }) -> cs
 
 # Fit parameters on results of all trials at once
 fit2 <- calibrate(
   cs,
   par=c(EC50=0.3, b=4.16, P_up=0.005),
-  endpoint="BM",
-  method="L-BFGS-B", lower=c(0, 0.1), upper=c(1000, 10)
+  output="BM",
+  method="L-BFGS-B",
+  lower=c(0, 0.1, 0),
+  upper=c(1000, 10, 0.1)
 )
 fit2$par
 
@@ -200,14 +204,14 @@ fit2$par
 fitted_tktd <- fitted_growth %>%
   set_param(fit2$par)
 
-treatments <- Schmitt2013 %>% select(time=t, trial=ID, conc)
+treatments <- Schmitt2013 %>% select(time=t, conc, trial=ID)
 rs_mean <- simulate_batch(
   model_base = fitted_tktd,
   treatments = treatments
 )
 # Observations in long format for plotting
 obs_mean <- Schmitt2013 %>%
-  select(time=t, trial=ID, data=obs)
+  select(time=t, data=obs, trial=ID)
 
 # Plot results
 plot_sd(
@@ -430,8 +434,8 @@ Lemna_Schmitt() %>%               # the Lemna model by Schmitt et al. (2013)
 ## simulate with model, under a range of different exposure scenarios
 # create several exposure scenarios
 exp_scen <- data.frame(time = Schmitt2013$t,
-                       trial = Schmitt2013$ID,
-                       conc = Schmitt2013$conc)
+                       conc = Schmitt2013$conc,
+                       trial = Schmitt2013$ID)
 # simulate for all these scenarios
 results <- simulate_batch(
   model_base = metsulfuron,

@@ -63,6 +63,8 @@ epx_mtw <- function(x,
 #
 # @param epx_mtw result of `epx_mtw()`
 # @param only_first TRUE = first window only
+# @noRd
+#' @autoglobal
 #
 # @return a tibble with
 # \itemize{
@@ -72,25 +74,10 @@ epx_mtw <- function(x,
 #  \item level
 #  \item EPx
 #  }
-#
-# @examples
-# \dontrun{
-# ti <- 0:21
-# expo <- abs(0.01*ti + rnorm(length(ti), 0, 0.05))
-# exposure <- data.frame(time = ti, conc = expo)
-# metsulfuron_epx_mtw <- metsulfuron %>%
-#   set_exposure(exposure) %>%
-#   epx_mtw(level = 10, factor_cutoff = 1000,
-#     window_length = 7, window_interval = 1)
-#
-# metsulfuron_epx_mtw
-#
-# metsulfuron_epx_mtw %>% epx_min_win()
-# }
 epx_min_win <- function(epx_mtw, only_first = TRUE){
   wc_window <- epx_mtw %>%
     dplyr::group_by(endpoint, level) %>%
-    dplyr::filter(.data$EPx == min(.data$EPx)) %>%
+    dplyr::filter(EPx == min(EPx)) %>%
     dplyr::arrange(window.start, endpoint, level) %>%
     dplyr::ungroup()
 
@@ -98,7 +85,7 @@ epx_min_win <- function(epx_mtw, only_first = TRUE){
   incr_wc_window <- wc_window %>%
     dplyr::group_by(endpoint) %>%
     dplyr::summarise(size = dplyr::n()) %>%
-    dplyr::filter(.data$size > 1) %>%
+    dplyr::filter(size > 1) %>%
     dplyr::select(endpoint)
 
   # remove all but the first moving time window if more than one exist
