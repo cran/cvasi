@@ -455,6 +455,9 @@ solver_Algae_Weber <- function(scenario, times, approx = c("linear","constant"),
     scenario@forcings$T_act
     )
 
+  # set names of additional output variables
+  outnames <- c("Cin", "I", "Tact", "dA", "dQ", "dP", "dC")
+
   # run solver
   as.data.frame(ode(y = scenario@init, times,
     initfunc = "algae_init",
@@ -466,6 +469,7 @@ solver_Algae_Weber <- function(scenario, times, approx = c("linear","constant"),
     dllname = "cvasi",
     method = method,
     hmax = hmax,
+    outnames = outnames,
     ...))
 }
 
@@ -515,6 +519,9 @@ solver_Algae_TKTD <- function(scenario, times, approx = c("linear","constant"),
   if(is.list(params)) params <- unlist(params)
   approx <- match.arg(approx)
 
+  # set names of additional output variables
+  outnames <- c("Cw", "I", "Tact", "dA", "dQ", "dP", "dDw")
+
   # run solver
   as.data.frame(ode(y = scenario@init, times,
     initfunc = "algae_TKTD_init",
@@ -526,6 +533,7 @@ solver_Algae_TKTD <- function(scenario, times, approx = c("linear","constant"),
     dllname = "cvasi",
     method = method,
     hmax = hmax,
+    outnames = outnames,
     ...))
 }
 
@@ -558,15 +566,7 @@ solver_Algae_Simple <- function(scenario, times, approx = c("linear","constant")
     params <- unlist(params)
 
   # create forcings list
-  if (scenario@param$const_growth == TRUE){
-    if (!is.null(scenario@forcings$f_growth) && length(scenario@forcings$f_growth) > 0){
-      warning("Constant growth enabled, disregarding growth forcings")
-    }
-    df_growth=data.frame(time = 0, f_growth = 1)
-    forcings <- list(scenario@exposure@series, df_growth)
-  } else {
-    forcings <- list(scenario@exposure@series, scenario@forcings$f_growth)
-  }
+  forcings <- list(scenario@exposure@series, scenario@forcings$f_growth)
 
   #required for C code
   params.req = c("mu_max",
@@ -579,6 +579,9 @@ solver_Algae_Simple <- function(scenario, times, approx = c("linear","constant")
   if(is.list(params)) params <- unlist(params)
   approx <- match.arg(approx)
 
+  # set names of additional output variables
+  outnames <- c("dA", "dDw", "dose_response", "scaled", "f_growth")
+
   # run solver
   as.data.frame(ode(y = scenario@init, times,
     initfunc = "algae_simple_init",
@@ -590,6 +593,7 @@ solver_Algae_Simple <- function(scenario, times, approx = c("linear","constant")
     dllname = "cvasi",
     method = method,
     hmax = hmax,
+    outnames = outnames,
     ...))
 }
 

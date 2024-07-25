@@ -1,11 +1,12 @@
-
 #' Creates plot of model results (uncertainties optional)
 #'
 #' All parameter combinations and exposure patterns are simulated and the mean
-#' of predicted frond numbers is derived for a single study. The uncertainty is
+#' of predictions is derived for a single study. The uncertainty is
 #' passed to the function due to computation time. Results are displayed by
 #' plotting the time series including the uncertainty interval. Observation data
-#' can be optionally displayed. Data should be provided in long format.
+#' can be optionally displayed. Data should be provided in long format. Function
+#' plots the time (column 1) and the predictions (column 2, can be changed by
+#' the user plot_col)
 #'
 #' @param model_base effect scenario object with mean parameters
 #' @param treatments treatments exposure levels as data frame
@@ -21,30 +22,36 @@
 #' @param y_title optional title of y-axis
 #' @param ... any additional parameters
 #' @return a ggplot2 plot object
+#' @global trial
 #' @export
 #'
 #' @examples
 #' set.seed(124)
 #' exposure <- data.frame(
 #'   time = 0:21,
-#'   conc = rnorm(n=22, mean=0.1, sd=0.06),
-#'   trial = "T1")
-#' forcings <- list(temp=12, rad=15000)
-#' param <- list(EC50=0.3, b=4.16, P_up=0.0054)
-#' inits <- list(BM=0.0012, E=1, M_int=0)
+#'   conc = rnorm(n = 22, mean = 0.1, sd = 0.06),
+#'   trial = "T1"
+#' )
+#' forcings <- list(temp = 12, rad = 15000)
+#' param <- list(EC50 = 0.3, b = 4.16, P_up = 0.0054)
+#' inits <- list(BM = 0.0012, E = 1, M_int = 0)
 #'
 #' scenario <- Lemna_Schmitt() %>%
 #'   set_forcings(forcings) %>%
 #'   set_param(param) %>%
 #'   set_init(inits)
 #'
-#' sim_result <- simulate_batch(model_base = scenario,
-#'                              treatments = exposure,
-#'                              param_sample = NULL)
+#' sim_result <- simulate_batch(
+#'   model_base = scenario,
+#'   treatments = exposure,
+#'   param_sample = NULL
+#' )
 #'
-#' plot_sd(model_base = scenario,
-#'         treatments = exposure,
-#'         rs_mean = sim_result)
+#' plot_sd(
+#'   model_base = scenario,
+#'   treatments = exposure,
+#'   rs_mean = sim_result
+#' )
 plot_sd <- function(model_base,
                     treatments,
                     rs_mean,
@@ -56,7 +63,7 @@ plot_sd <- function(model_base,
                     grid_labels = NULL,
                     grid_ncol = 2,
                     plot_col = 2,
-                    y_title = NULL,...) {
+                    y_title = NULL, ...) {
   # check format
   if (!is.data.frame(treatments) && !is.null(treatments)) {
     stop("treatments not a data.frame")
@@ -71,6 +78,8 @@ plot_sd <- function(model_base,
     stop("obs_full not a data.frame")
   }
 
+  no_trials <- length(unique(rs_mean$trial))
+
   # ToDo check class calibration set / set more than one exposure in an effect
   # scenario object as an alternative
   # ToDo check style guide
@@ -78,6 +87,7 @@ plot_sd <- function(model_base,
   # ToDo how to handle replicates? Plot replicates? Plot uncertainties?
 
   exp_plot <- treatments # long format
+  exp_plot$trial <- as.factor(exp_plot$trial)
 
   # try to guess the simulated time period
   t_max <- max(treatments[, 1]) # 1st column should contain time
@@ -95,15 +105,17 @@ plot_sd <- function(model_base,
 
   # try to find the max number of data for setting y-axis
   obs_max <- rs_mean %>%
-    dplyr::select({{plot_col}}) %>%
+    dplyr::select({{ plot_col }}) %>%
     max()
 
   if (!is.null(obs_full)) {
     obs_plot <- obs_full
-    obs_max <- max(obs_max, obs_plot$data) #??col number instead of name?
+    obs_max <- max(obs_max, obs_plot[,2]) #2 = data, observations
+    obs_plot$trial <- as.factor(obs_plot$trial) #trial
   } else if (!is.null(obs_mean)) {
     obs_plot <- obs_mean
-    obs_max <- max(obs_max, obs_plot$data)
+    obs_max <- max(obs_max, obs_plot[,2])
+    obs_plot$trial <- as.factor(obs_plot$trial) #trial
   } else {
     obs_plot <- NULL
   }
@@ -111,9 +123,9 @@ plot_sd <- function(model_base,
   obs_max <- obs_max * 1.10 # 10 per cent for the symbols
 
   # determine max of x-axis and scale the x value
-  exp_max <- max(exp_plot$conc) #?? col instead of name?
+  exp_max <- max(exp_plot[,2]) #?? col instead of name?
   if (obs_max > exp_max * 10 | exp_max > obs_max) {
-    exp_plot$conc <- exp_plot$conc / exp_max * obs_max
+    exp_plot[,2] <- exp_plot[,2] / exp_max * obs_max
   }
 
   # color scheme
@@ -127,10 +139,10 @@ plot_sd <- function(model_base,
   # random colors instead?
   # set default breaks for x axis
   if (is.null(x_breaks)) {
-    x_breaks <- grDevices::axisTicks(usr = range(treatments[, "time"]),
-                          log = FALSE,
-                          axp = NULL,
-                          nint = 5)
+    x_breaks <- grDevices::axisTicks(usr = range(treatments[, 1]),
+                                     log = FALSE,
+                                     axp = NULL,
+                                     nint = 5)
   }
   # set default y axis limits
   if (is.null(y_lim)) {
@@ -150,53 +162,89 @@ plot_sd <- function(model_base,
     y_title <- names(rs_mean)[plot_col]
   }
 
-  # create plot
-  plot <- ggplot2::ggplot() +
-    # exposure profiles
-    ggplot2::geom_area(ggplot2::aes(x = .data$time,
-                                    y = .data$conc,
-                                    fill = "black"),
-      data = exp_plot,
-      alpha = 0.12,
-      position = "identity"
-    ) +
-    # best fit
-    ggplot2::geom_line(ggplot2::aes(.data$time,
-                                    rs_mean[, plot_col],
-                                    color = .data$trial),
-      data = rs_mean
-    ) +
-    # labels
-    ggplot2::facet_wrap(trial ~ ., ncol = grid_ncol, labeller = f_lb) +
+# create plot
+  # one plot
+  if(no_trials == 1){ #ToDo? Exposure with second y-axis
+    plot <- ggplot2::ggplot() +
+      # best fit
+      ggplot2::geom_line(data = rs_mean, ggplot2::aes(x = rs_mean[,1], #time
+                                                      y = rs_mean[, plot_col], #output selected by user
+                                                      color = "black"),
+                         #show.legend = TRUE
+      ) +
+      # exposure profiles
+      ggplot2::geom_area(data = exp_plot, ggplot2::aes(x = exp_plot[,1], #time
+                                                       y = exp_plot[,2], #conc
+                                                       fill = "grey"),
+                         alpha = 0.12,
+                         position = "identity",
+                         #show.legend = TRUE
+      )
+
     # colors
-    ggplot2::scale_color_manual(values = col_palette) +
-    ggplot2::scale_fill_manual(values = col_palette) +
-    ggplot2::scale_x_continuous(name = "Time (days)", breaks = x_breaks) +
-    ggplot2::scale_y_continuous(name = y_title) +
-    # (name of column)
-    ggplot2::coord_cartesian(xlim = c(0, t_max), ylim = y_lim) + # boundaries
-    ggplot2::theme_bw() +
-    ggplot2::theme(legend.position = "none")
+    plot <- plot +
+      ggplot2::scale_color_manual(values = "black", name = "Prediction") +
+      ggplot2::scale_fill_manual(values = "grey", name = "Exposure") +
+      ggplot2::scale_x_continuous(name = "Time (days)", breaks = x_breaks) +
+      ggplot2::scale_y_continuous(name = y_title) +
+      #ggplot2::scale_y_continuous(sec.axis = sec_axis(~./1,name = "Exposure")) +
+      # (name of column)
+      ggplot2::coord_cartesian(xlim = c(0, t_max), ylim = y_lim) + # boundaries
+      ggplot2::theme_bw() +
+      ggplot2::theme(legend.position = "top")
 
-  if (!is.null(obs_plot)) {
-    plot <- plot + # observations, data
-      ggplot2::geom_point(ggplot2::aes(x = .data$time,
-                                       y = .data$data,
-                                       bg = .data$trial),
-        data = obs_plot, size = 3, shape = 22
-      )
+  } else {
+    plot <- ggplot2::ggplot() +
+
+      # best fit
+      ggplot2::geom_line(data = rs_mean, ggplot2::aes(x = rs_mean[,1], #time
+                                                      y = rs_mean[, plot_col], #output selected by user
+                                                      color = trial)
+      ) +
+      # exposure profiles
+      ggplot2::geom_area(data = exp_plot, ggplot2::aes(x = exp_plot[,1], #time
+                                                       y = exp_plot[,2], #conc
+                                                       fill = "black"),
+                         alpha = 0.12,
+                         position = "identity"
+      ) +
+      # Facet by trial
+      ggplot2::facet_wrap(~ trial, ncol = grid_ncol, labeller = f_lb)
+
+    # colors
+    plot <- plot +
+      ggplot2::scale_color_manual(values = col_palette) +
+      ggplot2::scale_fill_manual(values = col_palette) +
+      ggplot2::scale_x_continuous(name = "Time (days)", breaks = x_breaks) +
+      ggplot2::scale_y_continuous(name = y_title) +
+      # (name of column)
+      ggplot2::coord_cartesian(xlim = c(0, t_max), ylim = y_lim) + # boundaries
+      ggplot2::theme_bw() +
+      ggplot2::theme(legend.position = "none")
+
+    if (!is.null(obs_plot)) {
+      plot <- plot + # observations, data
+        ggplot2::geom_point(data = obs_plot, ggplot2::aes(x = obs_plot[,1], #time
+                                                          y = obs_plot[,2], #observations
+                                                          bg = trial),
+                            size = 3, shape = 22
+        ) +
+        # Facet by trial
+        ggplot2::facet_wrap(~ trial, ncol = grid_ncol, labeller = f_lb)
+    }
+
+    if (!is.null(rs_range)) {
+      plot <- plot + # uncertainties, data
+        ggplot2::geom_ribbon(data = rs_range, ggplot2::aes(x = rs_range[,1], #time
+                                                           ymin = rs_range[,2], #min
+                                                           ymax = rs_range[,3], #max
+                                                           fill = trial),
+                             alpha = 0.35
+        ) +
+        # Facet by trial
+        ggplot2::facet_wrap(~ trial, ncol = grid_ncol, labeller = f_lb)
+    }
   }
-
-  if (!is.null(rs_range)) {
-    plot <- plot + # uncertainties, data
-      ggplot2::geom_ribbon(ggplot2::aes(x = .data$time,
-                                        ymin = .data$min,
-                                        ymax = .data$max,
-                                        fill = .data$trial),
-        data = rs_range, alpha = 0.35
-      )
-  }
-
   print(plot)
 }
 
@@ -205,40 +253,52 @@ plot_sd <- function(model_base,
 #' A sample of parameters representing the uncertainty within the dataset
 #' is passed to the function. All parameter combinations and exposure patterns
 #' are simulated and the range of predicted frond numbers is derived for a
-#' single study. The uncertainty is displayed by a Posterior Predicitve Plot
-#' (PPC).
+#' single study. The uncertainty is displayed by a Posterior Predictive Plot
+#' (PPC). The data (rs_mean, obs_mean and obs_full) must have the
+#' following format (col1 = time, col2 = data of interest, col3 = trial name).
+#' Data for uncertainties (rs_range) must have the format: col1 = time,
+#' col2 = lower boundaries, col3 = upper boundaries, col4 = trial. The user
+#' should take care of the input data and consider whether control data and
+#' data at time zero should be included in the model check.
 #'
 #' @param rs_mean `data.frame`, model results best fit params
+#' @param col_number, column to plot, default = 2
 #' @param rs_range `data.frame`, predictions (min, max from param.sample run)
 #' @param obs_mean `data.frame`, observations with means per treatment level
 #' @param obs_full `data.frame`, full data set including results for replicates
 #' @param xy_lim optional `numeric`, limits of x and y axis for plotting
 #' @param study optional `string`, name of study which can be used as key
-#' @param outfile optional `string`, file path is given = save graph
-#' @param ... any additional parameters
+#' @global time trial
 #' @export
 #' @global time trial
 #'
-#' @return `data.frame` with fitted and observed frond numbers
+#' @return a ggplot2 plot object
 plot_ppc <- function(rs_mean,
                      rs_range,
+                     col_number = 2,
                      obs_mean = NULL,
                      obs_full = NULL,
                      xy_lim = NULL,
-                     study = NULL,
-                     outfile = NULL,
-                     ...) {
-  if (!is.data.frame(obs_mean) && !is.null(obs_mean))
+                     study = NULL) {
+  # Check if 'out.file' is in the arguments
+  if ("outfile" %in% names(args)) {
+    lifecycle::deprecate_stop(details = "The 'outfile' argument is no longer
+                              supported. Please adjust your code accordingly.")
+  }
+
+  if (!is.data.frame(obs_mean) && !is.null(obs_mean)) {
     stop("obs_mean not a data.frame")
-  if (!is.data.frame(obs_full) && !is.null(obs_full))
+  }
+  if (!is.data.frame(obs_full) && !is.null(obs_full)) {
     stop("obs_full not a data.frame")
+  }
 
   # try to find the maximumn value of observations
   if (is.null(xy_lim)) {
     if (!is.null(obs_full)) {
-      xy_lim <- max(obs_full$data)
+      xy_lim <- max(obs_full[, col_number]) # observation data
     } else {
-      xy_lim <- max(obs_mean$data)
+      xy_lim <- max(obs_mean[, col_number]) # observation data
     }
   }
 
@@ -251,16 +311,16 @@ plot_ppc <- function(rs_mean,
               in full experimental dataset")
     }
   }
+
   # add experimental data to table
   if (!is.null(obs_full)) {
     obs_plot <- obs_full
-    obs_max <- max(obs_plot$data)
   } else if (!is.null(obs_mean)) {
     obs_plot <- obs_mean
-    obs_max <- max(obs_plot$data)
   } else {
     obs_plot <- stop("No observation data are available!")
   }
+
   #prepare data frame for plot_ppc (pred, obs, min, max)
   rs_ppc <- data.frame(time = rs_mean$time, trial = rs_mean$trial)
   rs_ppc$pred <- rs_mean[, (ncol(rs_mean) - 1)]
@@ -268,22 +328,30 @@ plot_ppc <- function(rs_mean,
   rs_ppc$min <- rs_range$min
   rs_ppc$max <- rs_range$max
 
-  # remove start conditions and control data from dataset (#OK for GUTS, Lemna
-  # what about DEB?)
-  rs_ppc <- dplyr::filter(rs_ppc,
-                          time > 0 & trial != unique(rs_mean$trial)[1])
+  # prepare data frame for plot_ppc (pred, obs, min, max)
+  rs_ppc <- data.frame(time = rs_mean[, 1], trial = rs_mean$trial)
+  rs_ppc$pred <- rs_mean[, col_number]
+  rs_ppc$obs <- obs_plot[, col_number] # observation data
+  rs_ppc$min <- rs_range[, col_number] # lower boundaries
+  rs_ppc$max <- rs_range[, col_number + 1] # upper boundaries
 
-  # create plot
-  plot_ppc_combi(rs_ppc, xy_lim = xy_lim)
-  if (!is.null(outfile)) ggplot2::ggsave(outfile, width = 8, height = 6)
+  # Add PPC column
+  rs_ppc$PPC <- rs_ppc$obs >= rs_ppc$min & rs_ppc$obs <= rs_ppc$max
+  rs_ppc$PPC <- as.factor(ifelse(rs_ppc$PPC, "blue", "orange"))
 
   # set study key if requested
-  if (!is.null(study))
-    rs_ppc$study <- study #necessary when more than 1 study is available
-  # return fitted and observed data
-  invisible(rs_ppc)
-}
+  if (!is.null(study)) {
+    rs_ppc$study <- as.factor(study)
+  } # necessary when more than 1 study is available
 
+  # create plot
+  plot <- plot_ppc_combi(rs_ppc, xy_lim = xy_lim)
+
+  print(plot)
+
+  # return ggplot2 object
+  return(plot)
+}
 
 #' Create PPC plot for one or more datasets
 #'
@@ -296,28 +364,37 @@ plot_ppc <- function(rs_mean,
 #' The optional column is to be named `study` and contains a study identifier.
 #' If more than one study identifier is present in the table, individual
 #' studies will be plotted in different colors and a legend will be displayed.
+#' The function is called by plot_ppc where the column names are defined
+#' (see rs_ppc object).
 #'
 #' @param table `data.frame` containing return values of calls to `plot_ppc()`
 #' @param xy_lim optional `numeric`, limits of x and y axis for plotting
-#' @global obs min max pred study
+#' @return a ggplot2 plot object
+#' @global obs pred study min max
+
 plot_ppc_combi <- function(table, xy_lim = NULL) {
   if (!is.data.frame(table)) stop("table not a data.frame")
 
-  if (!("obs" %in% names(table)
-        && "pred" %in% names(table)
-        && "min" %in% names(table)
-        && "max" %in% names(table)
-        )) {
+  if (!("obs" %in% names(table) &&
+          "pred" %in% names(table) &&
+          "min" %in% names(table) &&
+          "max" %in% names(table) &&
+          "PPC" %in% names(table)
+      )) {
     stop("Required variables (obs, pred, min, max) are missing in the dataset.")
   }
 
   # try to find the max number in experiments
-  if (is.null(xy_lim))
+  if (is.null(xy_lim)) {
     xy_lim <- max(table[, c("pred", "obs")])
+  }
 
-  if (!("study" %in% names(table)))
-    table$study <- "n/a"
-  n_studies <- length(unique(table$study))
+  if (("study" %in% names(table))) {
+    n_studies <- length(unique(table$study))
+  } else {
+    n_studies <- 1
+    table$study <- "black"
+  }
 
   # calculate PPC
   n <- nrow(table)
@@ -328,50 +405,58 @@ plot_ppc_combi <- function(table, xy_lim = NULL) {
   nrmse <- 1 / mean(table$obs) * sqrt(1 / n * sum((table$obs - table$pred)^2))
 
   # color scheme
-  col_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
-                   "#0072B2", "#D55E00", "#CC79A7")
-  if (n_studies == 1)
+  col_palette <- c(
+    "#E69F00", "#56B4E9", "#009E73", "#F0E442",
+    "#0072B2", "#D55E00", "#CC79A7"
+  )
+  if (n_studies == 1) {
     col_palette <- c("black")
-  if (n_studies > length(col_palette))
+  }
+  if (n_studies > length(col_palette)) {
     stop("color palette has too few elements, please amend")
+  }
 
   # create plot
-  title <- paste0("NRMSE: ",
-                  round(nrmse * 100, 1),
-                  "% & PPC: ",
-                  round(ppc, 1),
-                  "%")
+  title <- paste0(
+    "NRMSE: ",
+    round(nrmse * 100, 1),
+    "% & PPC: ",
+    round(ppc, 1),
+    "%"
+  )
+
   plot <- ggplot2::ggplot() +
-    ggplot2::geom_area(ggplot2::aes(x = c(0, xy_lim), y = c(0, xy_lim)),
-      fill = "green",
-      alpha = 0.1,
-      position = "identity"
-    ) +
-    ggplot2::geom_ribbon(
-      ggplot2::aes(x = c(0, xy_lim), ymin = c(0, xy_lim),ymax = c(xy_lim, xy_lim)
-      ),
-      fill = "red", alpha = 0.1
-    ) +
     ggplot2::geom_abline(linetype = "dashed") +
-    ggplot2::geom_point(ggplot2::aes(obs, pred, color = study),
+    ggplot2::geom_linerange(
+      ggplot2::aes(obs,
+        ymin = obs$min,
+        ymax = obs$max,
+        color = obs$PPC
+      ),
+      alpha = 0.7,
+      linewidth = 1.1,
       data = table
     ) +
-    ggplot2::geom_linerange(ggplot2::aes(obs,
-                                         ymin = min,
-                                         ymax = max,
-                                         color = study),
-      alpha = 0.7,
+    ggplot2::scale_color_identity()
+
+  plot <- plot +
+    ggplot2::geom_point(
+      ggplot2::aes(obs,
+        pred,
+        color = study
+      ),
+      size = 1.5,
       data = table
     ) +
     ggplot2::coord_cartesian(xlim = c(0, xy_lim), ylim = c(0, xy_lim)) +
-    ggplot2::scale_color_manual(values = col_palette, name = "Study") +
     ggplot2::labs(x = "Observed", y = "Predicted", title = title) +
     ggplot2::theme_bw()
 
-  if (n_studies == 1) # hide legend if only one study supplied
+  if (n_studies == 1) { # hide legend if only one study supplied
     plot <- plot + ggplot2::theme(legend.position = "none")
+  }
 
-  print(plot)
+  return(plot)
 }
 
 #' Plot EPx values
@@ -384,10 +469,12 @@ plot_ppc_combi <- function(table, xy_lim = NULL) {
 #' the EPx plot are returned as a list for later modification
 #' @param time_col the name of the time column in the exposure dataset
 #' @param conc_col the name of the concentration column in the exposure dataset
+#' @param epx_x_title title of the x-axis of the epx panel
+#' @param conc_y_title title of the y-axis of the concentration panel
 #'
 #' @return a grid of ggplots
 #' @export
-#' @global EPx
+#' @global EPx len
 #'
 #' @examples
 #' ti <- 0:21
@@ -398,8 +485,9 @@ plot_ppc_combi <- function(table, xy_lim = NULL) {
 #' epx_mtw(level = 10, factor_cutoff = 1000)
 #' metsulfuron_epx_mtw
 #' plot_epx(EPx_ts = metsulfuron_epx_mtw,
-#' exposure_ts = exposure)
-plot_epx <- function(EPx_ts, exposure_ts, draw = TRUE, time_col = "time", conc_col = "conc") {
+#' exposure_ts = exposure, conc_y_title = "env. concentration [µg/L]")
+plot_epx <- function(EPx_ts, exposure_ts, draw = TRUE, time_col = "time", conc_col = "conc",
+                     epx_x_title = "Start time", conc_y_title = "Exposure conc.") {
 
   plot_dat <- EPx_ts %>%
     dplyr::select(!dplyr::matches("window.end", "level"))
@@ -410,14 +498,26 @@ plot_epx <- function(EPx_ts, exposure_ts, draw = TRUE, time_col = "time", conc_c
     stop("only single EPx level accepted for plotting")
   }
   epx_y_title <- parse(text = paste0('EP[', ep_level, ']'))
-  epx_x_title <- "Start time"
   epx_plot_x_lim <- EPx_ts %>%
     dplyr::select(window.start, window.end) %>%
     range()
-  epx_plot <- ggplot2::ggplot(plot_dat) +
-    ggplot2::geom_line(ggplot2::aes(window.start, EPx),
-                       color = "orange",
-                       linewidth = 1.25) +
+
+  len_ts <- plot_dat %>%
+    dplyr::group_by(endpoint) %>%
+    dplyr::summarise(len = length(window.start)) %>%
+    dplyr::pull(len) %>%
+    min()
+  if (len_ts == 1){
+    epx_plot_base <- ggplot2::ggplot(plot_dat) +
+      ggplot2::geom_point(ggplot2::aes(window.start, EPx),
+                          color = "orange")
+  } else {
+    epx_plot_base <- ggplot2::ggplot(plot_dat) +
+      ggplot2::geom_line(ggplot2::aes(window.start, EPx),
+                         color = "orange",
+                         linewidth = 1.25)
+  }
+  epx_plot <- epx_plot_base +
     ggplot2::ylab(epx_y_title) +
     ggplot2::xlab(epx_x_title) +
     ggplot2::ylim(0, NA) +
@@ -425,7 +525,6 @@ plot_epx <- function(EPx_ts, exposure_ts, draw = TRUE, time_col = "time", conc_c
     ggplot2::facet_wrap(endpoint ~ ., ncol = 1, scales="free_y")
 
   # Concentration plot ----
-  conc_y_title <- "Exposure conc."
   conc_plot <- ggplot2::ggplot(exposure_ts) +
     ggplot2::geom_area(ggplot2::aes(.data[[time_col]], .data[[conc_col]]),
                        alpha = 0.5,
@@ -447,7 +546,51 @@ plot_epx <- function(EPx_ts, exposure_ts, draw = TRUE, time_col = "time", conc_c
     grid::grid.newpage()
     grid::grid.draw(plots)
   } else {
-    out <- list(conc_plot, epx_plot)
+    return(list(conc_plot, epx_plot))
   }
+}
+
+#' Creates a prediction plot for one effect scenario
+#'
+#' Sometimes it is helpful if the user can plot results of one effect
+#' scenario. This is for instance the case for test simulations or predictions
+#' for one profile. This function runs the simulation for one effect scenario
+#' and plots the results. Function plots the time (column 1) and the predictions
+#' (column 2, can be changed by the user plot_col)
+#'
+#' @param model_base effect scenario object with mean parameters
+#' @param plot_col output column which should be plotted, default = 2
+#' @param trial_number name for model run (if available tag is used)
+#' @return plot of the results for one `effect scenario`
+#' @export
+#'
+#' @examples
+#' plot_scenario(metsulfuron)
+plot_scenario <- function(model_base, plot_col = 2, trial_number = NULL) {
+
+  # set name of run
+  if (is.null(trial_number)) {
+    if (is.na(model_base@tag)) {
+      trial_number <- "T1"
+    } else {
+      trial_number <- model_base@tag
+    }
+  }
+
+  # run model
+  sim_result <- model_base %>% simulate()
+  sim_result$trial <- trial_number
+
+  # prepare exposure data
+  exposure <- model_base@exposure@series
+  exposure$trial <- trial_number
+
+  # plot results
+  plot_sd(model_base = model_base,
+    treatments = exposure,
+    rs_mean = sim_result,
+    obs_mean = NULL,
+    plot_col = plot_col
+  )
 
 }

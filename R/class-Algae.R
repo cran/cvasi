@@ -89,8 +89,15 @@ setClass("AlgaeSimpleScenario", contains = "Algae")
 #' list of the data frames.
 #'
 #' @section Simulation output:
+#' Simulation results will contain the state variables Biomass (`A`), mass of
+#' internal phosphorous (`Q`), mass of external phosphorous (`P`) and the external
+#' concentration (`C`). The derivatives are also available as additional output.
 #'
-#' Simulation results will contain state variables.
+#' - `nout >= 4`
+#'    - `dA`, biomass derivative (µg)
+#'    - `dQ`, internal phosphorous derivative (mg P/ug fresh wt)
+#'    - `dP`, external phosphorous derivative (mg P L-1)
+#'    - `dC`, external concentration derivative (ug L-1)
 #'
 #' @references
 #' Weber D, Schaeffer D, Dorgerloh M, Bruns E, Goerlitz G, Hammel K, Preuss TG
@@ -144,11 +151,15 @@ Algae_Weber <- function() {
 
 #' Algae model with exponential growth, forcings (P, I) and scaled damage
 #'
-#' Creates an *Algae* scenario. The model is a variant
-#' of the [Algae_Weber()] model (Weber 2012) as cited in EFSA TKTD opinion (2018).
-#' This Algae model, [Algae_TKTD()], a) provides an additional
-#' possibility to simulate the dose-response curve (probit) and b) considers an
-#' scaled internal damage instead of the external concentration.
+#'The model is a mechanistic combined toxicokinetic-toxicodynamic (TK/TD) and
+#'growth model for algae. The model simulates the development of algal biomass
+#'under laboratory and environmental conditions. The growth of the algae
+#' population is simulated on the basis of growth rates, which are dependent on
+#' environmental conditions (radiation, temperature and phosphorus).
+#' The model is a variant of the [Algae_Weber()] model (Weber 2012) as cited
+#' in EFSA TKTD opinion (2018). This Algae model, [Algae_TKTD()], provides an
+#' additional possibility (probit) to simulate the dose-response curve and
+#' considers a scaled internal damage instead of the external concentration.
 #'
 #' @section State variables:
 #' The model has four state variables:
@@ -188,8 +199,15 @@ Algae_Weber <- function() {
 #' list of the data frames.
 #'
 #' @section Simulation output:
+#' Simulation results will contain the state variables Biomass (`A`), mass of
+#' internal phosphorous (`Q`), mass of external phosphorous (`P`) and the damage
+#' concentration (`Dw`). The derivatives are also available as additional output.
 #'
-#' Simulation results will contain state variables.
+#' - `nout >= 4`
+#'    - `dA`, biomass derivative (µg)
+#'    - `dQ`, internal phosphorous derivative (mg P/ug fresh wt)
+#'    - `dP`, external phosphorous derivative (mg P L-1)
+#'    - `dDw`, damage concentration derivative (ug L-1)
 #'
 #' @references
 #' Weber D, Schaeffer D, Dorgerloh M, Bruns E, Goerlitz G, Hammel K, Preuss TG
@@ -246,13 +264,12 @@ Algae_TKTD <- function() {
 #'
 #' @section State variables:
 #' The model has two state variables:
-#' - `A`, Biomass
+#' - `A`, Biomass (µg)
 #' - `Dw`, only used if scaled = 1
 #'
 #' @section Model parameters:
 #' - Growth model
 #'   - `mu_max`, Maximum growth rate (d-1)
-#'   - `const_growth`, constant growth over time (0 = no, 1 = yes)
 #'
 #' - Concentration response (Toxicodynamics)
 #'   - `EC_50`, Effect concentration of 50% inhibition of growth rate (ug L-1)
@@ -264,13 +281,23 @@ Algae_TKTD <- function() {
 #'   - `scaled`, 0 = no internal scaled damage / 1 = yes (-)
 #'
 #' @section Forcings:
-#' simplified model without additional forcings except the external concentration
-#' and a forcing variable f_growth if the growth rates are time-dependent. If
-#' not time dependent, f_growth should be set to 1.
+#' Simplified model without additional forcings for e.g. irradiation or temperature
+#' as implemented in `Algae_Weber`. A constant growth over time is assumed.
+#' In case that growth is time dependent, a forcing variable (f_growth) can be set.
+#' Forcing time-series are represented by `data.frame` objects consisting of two
+#' columns. The first for time and the second for a scaling factor of mu_max.
+#' The input format for all forcings is a list of the data frames. If f_growth is
+#' not set, a default scaling factor of 1 is used.
 #'
 #' @section Simulation output:
+#' Simulation results will contain the state variables biomass (`A`) and in case
+#' of scaled damage the damage concentration (`Dw`). The derivatives are also
+#' available as additional output.
 #'
-#' Simulation results will contain state variables.
+#' - `nout >= 2`
+#'    - `dA`, biomass derivative (µg)
+#'    - `dDw`, damage concentration derivative (ug L-1)
+#'
 #'
 #' @references
 #' Weber D, Schaeffer D, Dorgerloh M, Bruns E, Goerlitz G, Hammel K, Preuss TG
@@ -288,7 +315,7 @@ Algae_TKTD <- function() {
 Algae_Simple <- function() {
   new("AlgaeSimpleScenario",
       name = "Algae_Simple",
-      param.req = c("mu_max", "const_growth",
+      param.req = c("mu_max",
                     "EC_50", "b", "kD",
                     "dose_response", "scaled"
       ),
@@ -299,7 +326,7 @@ Algae_Simple <- function() {
       ),
       endpoints = c("A", "r"),
       forcings.req = c("f_growth"),
-      #forcings = list(f_growth = data.frame(time = 0, f_growth = 1)),
+      forcings = list(f_growth = data.frame(time = 0, f_growth = 1)),
       control.req = TRUE,
       init = c(A = 1, Dw = 0),
       transfer.interval = -1,

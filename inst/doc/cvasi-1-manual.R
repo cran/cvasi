@@ -138,7 +138,7 @@ mydeb %>%
 
 ## ---- include=FALSE-----------------------------------------------------------
 # make sure that value in text are still up to date
-testthat::expect_equal(mydeb %>%  set_endpoints("L") %>% epx(ep_only=TRUE) %>% unlist(), c(1.162598, 1.711914), ignore_attr=TRUE, tolerance=0.01)
+testthat::expect_equal(mydeb %>%  set_endpoints("L") %>% epx(ep_only=TRUE) %>% unlist(use.names=FALSE), c(1.162598, 1.711914), ignore_attr=TRUE, tolerance=0.01)
 
 ## -----------------------------------------------------------------------------
 # Examine how the EP20 value is derived

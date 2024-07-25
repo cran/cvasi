@@ -15,7 +15,6 @@ test_that("Algae_Simple simulation", {
 
   # parms
   parms <- c(mu_max = 1,
-             const_growth = 0,
              EC_50 = 1,
              b = 2,
              scaled = 0,
@@ -34,7 +33,7 @@ test_that("Algae_Simple simulation", {
     set_times(times) %>%
     set_forcings(f_growth = forc_fgrowth) %>%
     set_init(y_init)
-  results <- effect_scenario %>% simulate(nout = 6)
+  results <- effect_scenario %>% simulate(nout = 5)
 
   # check biomass growth against values from analytical solution
   # generated in R with initial_value * exp(growth_max * t)
@@ -58,7 +57,6 @@ test_that("Algae_Simple simulation", {
   # control run, constant growth
   # parms
   parms <- c(mu_max = 1,
-             const_growth = 1,
              EC_50 = 1,
              b = 2,
              scaled = 0,
@@ -70,14 +68,13 @@ test_that("Algae_Simple simulation", {
   forc_C_in <- data.frame(times = times, C = rep(0, length(times)))
 
   # control run
-  # control run
   effect_scenario <- model_base %>%
     set_param(parms) %>%
     set_tag("control run") %>%
     set_exposure(forc_C_in) %>%
     set_times(times) %>%
     set_init(y_init)
-  results <- effect_scenario %>% simulate(nout = 6)
+  results <- effect_scenario %>% simulate(nout = 5)
 
   # check biomass growth against values from analytical solution
   # generated in R with initial_value * exp(growth_max * t)
@@ -117,7 +114,6 @@ test_that("Algae_Simple simulation", {
   #EC50 run probit
   # parms
   parms <- c(mu_max = 1,
-             const_growth = 1,
              EC_50 = 1,
              b = 2,
              scaled = 0,
@@ -136,7 +132,6 @@ test_that("Algae_Simple simulation", {
   #EC50 run probit scaled
   # parms
   parms <- c(mu_max = 1,
-             const_growth = 1,
              EC_50 = 1,
              b = 2,
              scaled = 0,
