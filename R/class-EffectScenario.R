@@ -117,6 +117,7 @@
 #' @slot name `character`, unique model name
 #' @slot tag `character`, an optional identifier
 #' @slot param `list` of parameter key-value pairs
+#' @slot param.bounds named `list` of parameter boundaries
 #' @slot param.req `character` vector of required parameters
 #' @slot forcings `list` of `data.frame`s representing forcing time-series
 #' @slot forcings.req `character` vector or required model forcings data, e.g. temperature
@@ -151,6 +152,7 @@ setClass("EffectScenario",
      name="character",
      param="list",
      param.req="character",
+     param.bounds="list",
      forcings="list",
      forcings.req="character",
      init="numeric",

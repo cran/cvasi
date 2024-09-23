@@ -16,6 +16,11 @@
 #' Pseudokirchneriella subcapitata. Environmental Toxicology and
 #' Chemistry, 31, 899-908. \doi{10.1002/etc.1765}
 #'
+#' EFSA Panel on Plant Protection Products and their Residues, 2018. Scientific
+#' opinion on the state of the art of Toxicokinetic/Toxicodynamic (TKTD) effect
+#' models for regulatory risk assessment of pesticides for aquatic organisms.
+#' EFSA journal 16:5377 \doi{10.2903/j.efsa.2018.5377}
+#'
 #' @name Algae-models
 #' @family algae models
 #' @family scenarios
@@ -50,27 +55,30 @@ setClass("AlgaeSimpleScenario", contains = "Algae")
 #'dependent on environmental conditions (radiation, temperature and phosphorus).
 #'The toxicodynamic sub-model describes the effects of growth-inhibiting
 #'substances through a corresponding reduction in the photosynthesis rate on
-#'the basis of internal concentrations.
+#'the basis of internal concentrations. (the implementation of Weber et al.
+#'(2012) is followed where units differ with EFSA)
 #'
 #' @section State variables:
 #' The model has four state variables:
-#' - `A`, Biomass (ug fresh wt)
-#' - `Q`, Mass of phosphorous internal (mg P/ug fresh wt)
-#' - `P`, Mass of phosphorous external (mg P/L)
+#' - `A`, Biomass (ug fresh wt/mL, cells/mL *10^4)
+#' - `Q`, Mass of phosphorous internal (mg P/L, or ug P/mL)
+#' - `P`, Mass of phosphorous external (mg P/L, or ug P/mL)
 #' - `C`, external substance concentration (ug/L)
 #'
 #' @section Model parameters:
 #' - Growth model
 #'   - `mu_max`, Maximum growth rate (d-1)
-#'   - `Q_min`, Minimum intracellular P (mg P/ug fresh wt)
-#'   - `Q_max`, Maximum intracellular P (mg P/ug fresh wt)
-#'   - `v_max`, Maximum P-uptake rate at non-limited growth (mg P/ug fresh wt/d)
+#'   - `Q_min`, Minimum intracellular P (ug P/ug fresh wt)
+#'   - `Q_max`, Maximum intracellular P (ug P/ug fresh wt)
+#'   - `v_max`, Maximum P-uptake rate at non-limited growth (ug P/ug fresh wt/d)
 #'   - `k_s`,   Half-saturation constant for extracellular P (mg P/L)
 #'   - `m_max`, Natural mortality rate (1/d)
 #'   - `I_opt`, Optimum light intensity for growth (uE/m²/s)
 #'   - `T_opt`, Optimum temperature for growth (°C)
 #'   - `T_max`, Maximum temperature for growth (°C)
 #'   - `T_min`, Minimum temperature for growth (°C)
+#'   - `D`, Dilution rate (1/d)
+#'   - `R_0`, Influx concentration of P (mg P/L)
 #'
 #' - Concentration response (Toxicodynamics)
 #'   - `EC_50`, Effect concentration of 50% inhibition of growth rate (ug/L)
@@ -99,6 +107,11 @@ setClass("AlgaeSimpleScenario", contains = "Algae")
 #'    - `dP`, external phosphorous derivative (mg P L-1)
 #'    - `dC`, external concentration derivative (ug L-1)
 #'
+#' @section Parameter boundaries:
+#' Default values for parameter boundaries are set for all parameters by expert
+#' judgement, for calibration purposes. Values can be access from the object, and
+#' defaults overwritten.
+#'
 #' @references
 #' Weber D, Schaeffer D, Dorgerloh M, Bruns E, Goerlitz G, Hammel K, Preuss TG
 #' and Ratte HT, 2012. Combination of a higher-tier flow-through system and
@@ -125,21 +138,18 @@ setClass("AlgaeSimpleScenario", contains = "Algae")
 Algae_Weber <- function() {
   new("AlgaeWeberScenario",
     name = "Algae_Weber",
-    param.req = c("mu_max", "m_max", "v_max", "k_s",
-      "Q_min", "Q_max", "R_0", "D",
-      "T_opt", "T_min", "T_max", "I_opt",
-      "EC_50", "b", "k"
+    param.req = c("mu_max", "m_max", "v_max", "k_s", "Q_min", "Q_max", "R_0", "D",
+                  "T_opt", "T_min", "T_max", "I_opt", "EC_50", "b", "k"
     ),
     # default values as defined by Weber et al. (2012)
-    param = list(mu_max = 1.7380, m_max = 0.0500, v_max = 0.0520,
-    k_s = 0.0680,
-    Q_min = 0.0011, Q_max = 0.0144, R_0 = 0.36, D = 0.5,
-    T_opt = 27, T_min = 0, T_max = 35, I_opt = 120,
-    EC_50 = 115, b = 1.268, k = 0.2
+    param = list(mu_max = 1.7380, m_max = 0.0500, v_max = 0.0520, k_s = 0.0680,
+                 Q_min = 0.0011, Q_max = 0.0144, R_0 = 0.36, D = 0.5,
+                 T_opt = 27, T_min = 0, T_max = 35, I_opt = 120
     ),
+    # boundary presets defined by expert judgement
+    param.bounds = list(mu_max=c(0, 4),  EC_50=c(0, 1e6), b=c(0.1, 20)),
     endpoints = c("A", "r"),
-    # growth as endpoint mu_max * f_T * f_I * f_Q * f_C?
-    forcings.req=c("T_act","I","C_in"),
+    forcings.req=c("T_act", "I"),
     control.req = TRUE,
     init = c(A = 1, Q = 0.01, P = 0.18, C = 0),
     transfer.interval = -1,
@@ -163,17 +173,17 @@ Algae_Weber <- function() {
 #'
 #' @section State variables:
 #' The model has four state variables:
-#' - `A`, Biomass (ug fresh wt)
-#' - `Q`, Mass of phosphorous internal (mg P/ug fresh wt)
-#' - `P`, Mass of phosphorous external (mg P/L)
+#' - `A`, Biomass (ug fresh wt/mL, cells/mL *10^4)
+#' - `Q`, Mass of phosphorous internal (ug P/ug fresh wt)
+#' - `P`, Mass of phosphorous external (ug P/L)
 #' - `Dw`, Damage concentration (ug/L)
 #'
 #' @section Model parameters:
 #' - Growth model
 #'   - `mu_max`, Maximum growth rate (d-1)
-#'   - `Q_min`, Minimum intracellular P (mg P/ug fresh wt)
-#'   - `Q_max`, Maximum intracellular P (mg P/ug fresh wt)
-#'   - `v_max`, Maximum P-uptake rate at non-limited growth (mg P/ug fresh wt/d)
+#'   - `Q_min`, Minimum intracellular P (ug P/ug fresh wt)
+#'   - `Q_max`, Maximum intracellular P (ug P/ug fresh wt)
+#'   - `v_max`, Maximum P-uptake rate at non-limited growth (ug P/ug fresh wt/d)
 #'   - `k_s`,   Half-saturation constant for extracellular P (mg P/L)
 #'   - `m_max`, Natural mortality rate (1/d)
 #'   - `I_opt`, Optimum light intensity for growth (uE/m²/s)
@@ -187,7 +197,7 @@ Algae_Weber <- function() {
 #'   - `dose_resp`, shape of the dose response curve (0 = logit, 1 = probit)
 #'
 #' - External concentration (Toxicokinetics)
-#'   - `kD`, dominant rate constant (used in `Algae_TKTD()`only) (d-1)
+#'   - `kD`, dominant rate constant (d-1)
 #'
 #' @section Forcings:
 #' Besides exposure events (Cw), the *Algae* model requires two environmental
@@ -228,19 +238,19 @@ Algae_TKTD <- function() {
       param.req = c("mu_max", "m_max", "v_max", "k_s",
                     "Q_min", "Q_max",
                     "T_opt", "T_min", "T_max", "I_opt",
-                    "EC_50", "b", "k", "kD", "dose_resp", "scaled"
+                    "EC_50", "b", "k", "kD", "dose_resp"
       ),
       # default values as defined by Weber et al. (2012)
       param = list(mu_max = 1.7380, m_max = 0.0500, v_max = 0.0520,
                    k_s = 0.0680,
                    Q_min = 0.0011, Q_max = 0.0144,
                    T_opt = 27, T_min = 0, T_max = 35, I_opt = 120,
-                   EC_50 = 115, b = 1.268, k = 0.2, kD = 0.1, dose_resp = 0
+                   dose_resp = 0
       ),
-
+      # boundary presets defined by expert judgement
+      param.bounds = list(mu_max=c(0, 4),  EC_50=c(0, 1e6), b=c(0.1, 20), kD=c(0, 10)),
       endpoints = c("A", "r"),
-      # growth as endpoint mu_max * f_T * f_I * f_Q * f_C?
-      forcings.req=c("T_act","I","C_in"),
+      forcings.req=c("T_act", "I"),
       control.req = TRUE,
       init = c(A = 1, Q = 0.01, P = 0.18, Dw = 0),
       transfer.interval = -1,
@@ -260,11 +270,11 @@ Algae_TKTD <- function() {
 #' environmental conditions which are usually optimal in laboratory effect studies.
 #' The toxicodynamic sub-model describes the effects of growth-inhibiting
 #' substances through a corresponding reduction in the photosynthesis rate on the
-#' basis of internal concentrations.
+#' basis of either external or internal concentrations (depending on user choice of 'scaled' parameter setting).
 #'
 #' @section State variables:
 #' The model has two state variables:
-#' - `A`, Biomass (µg)
+#' - `A`, Biomass (ug fresh wt/mL, cells/mL *10^4)
 #' - `Dw`, only used if scaled = 1
 #'
 #' @section Model parameters:
@@ -288,6 +298,10 @@ Algae_TKTD <- function() {
 #' columns. The first for time and the second for a scaling factor of mu_max.
 #' The input format for all forcings is a list of the data frames. If f_growth is
 #' not set, a default scaling factor of 1 is used.
+#'
+#' @section Parameter boundaries:
+#' Upper and lower parameter boundaries are set by default for each parameter. This,
+#' to avoid extreme values during calibration (particularly likelihood profiling)
 #'
 #' @section Simulation output:
 #' Simulation results will contain the state variables biomass (`A`) and in case
@@ -315,15 +329,12 @@ Algae_TKTD <- function() {
 Algae_Simple <- function() {
   new("AlgaeSimpleScenario",
       name = "Algae_Simple",
-      param.req = c("mu_max",
-                    "EC_50", "b", "kD",
-                    "dose_response", "scaled"
-      ),
+      param.req = c("mu_max", "EC_50", "b", "kD", "dose_response", "scaled"),
       # default values as defined by Weber et al. (2012)
-      param = list(mu_max = 1.7380, const_growth = TRUE,
-                   EC_50 = 115, b = 1.268, kD = 0.1,
-                   dose_response = 0, scaled = 0
-      ),
+      param = list(mu_max = 1.7380, const_growth = TRUE, dose_response = 0,
+                   scaled = 0),
+      # boundary presets defined by expert judgement
+      param.bounds = list(mu_max=c(0, 4), EC_50=c(0, 1e6), b=c(0.1, 20), kD=c(0, 10)),
       endpoints = c("A", "r"),
       forcings.req = c("f_growth"),
       forcings = list(f_growth = data.frame(time = 0, f_growth = 1)),

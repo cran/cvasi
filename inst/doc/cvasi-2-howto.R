@@ -143,7 +143,8 @@ obs_control <- Schmitt2013 %>%
   filter(ID == "T0") %>%
   select(t, BM=obs)
 
-# Fit parameter `k_phot_max` to observed data
+# Fit parameter `k_phot_max` to observed data: `k_phot_max` is a physiological
+# parameter which is typically fitted to the control data
 fit1 <- calibrate(
   x = control,
   par = c(k_phot_max = 1),
@@ -196,7 +197,8 @@ fit2 <- calibrate(
   output="BM",
   method="L-BFGS-B",
   lower=c(0, 0.1, 0),
-  upper=c(1000, 10, 0.1)
+  upper=c(1000, 10, 0.1),
+  verbose=FALSE
 )
 fit2$par
 
@@ -220,6 +222,46 @@ plot_sd(
   rs_mean = rs_mean,
   obs_mean = obs_mean
 )
+
+## -----------------------------------------------------------------------------
+# using the calibration set and calibrated parameters from the previous Lemna 
+# Schmitt example, a likelihood profiling is done
+# We set parameter boundaries to constrain the likelihood profiling within these 
+# boundaries (this is optional)
+
+# conduct profiling
+res <- lik_profile(x = cs, # the calibration set
+                   par = fit2$par, # the parameter values after calibration
+                   output = "BM", # the observational output against which to 
+                                  # compare the model fit
+                   bounds = list(EC50_int = list(0.1, 4), 
+                                 b = list(1, 5),
+                                 P = list(0.0001, 0.2)))
+# visualise profiling results
+plot_lik_profile(res)
+
+# access 95% confidence intervals of profiled parameters
+res$EC50$confidence_interval
+res$b$confidence_interval
+
+
+## ---- eval=FALSE--------------------------------------------------------------
+#  # Call the help page for more information about the parameter space explorer
+#  ?explore_space
+#  
+
+## -----------------------------------------------------------------------------
+
+# conduct space exploration
+res_space <- explore_space(
+  x = cs,
+  par = fit2$par,
+  res = res, # output of the likelihood profiling function
+  output = "BM")
+
+# visualize the parameter space
+plot_param_space(res_space)
+
 
 ## -----------------------------------------------------------------------------
 # base scenario only valid until day 7

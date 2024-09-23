@@ -44,5 +44,5 @@ be required to start a simulation. If required parameters are missing,
 simulation will fail with an error message.
 }
 \examples{
-Lemna_Schmitt() \%>\% set_param(c(Emax=1,EC50=0.12))
+Lemna_Schmitt() \%>\% set_param(c(Emax=1, EC50=0.12))
 }

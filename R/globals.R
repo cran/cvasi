@@ -14,6 +14,9 @@ utils::globalVariables(c(
   "ep", # <epx_binary_search>
   "level", # <epx_binary_search>
   "mf", # <epx_binary_search>
+  "LLR_accept", # <explore_space>
+  "LLR_quality", # <explore_space>
+  "LL", # <plot_param_space>
   "time", # <derive_range>
   "trial", # <derive_range>
   "FrondNo", # <derive_range>
@@ -23,6 +26,7 @@ utils::globalVariables(c(
   "V2", # <extract_focus_profile>
   "V3", # <extract_focus_profile>
   "DateTime", # <extract_focus_profile>
+  "start", # <profile_par>
   ".", # <format_table>
   "trial", # <plot_sd>
   "time", # <plot_ppc>
@@ -40,5 +44,6 @@ utils::globalVariables(c(
   "model", # <set_param_multi>
   "name", # <set_param_multi>
   "desc", # <set_param_multi>
+  "S", # <survival>
   NULL
 ))

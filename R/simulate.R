@@ -27,6 +27,22 @@
 #' using argument `hmax` or by decreasing the error tolerances `atol` and `rtol`.
 #' These arguments are passed to the solver, see e.g. [deSolve::lsoda()] for details.
 #'
+#' ### Optional output variables
+#' Some models support adding intermediary model variables to the return value
+#' of `simulate()`. Analyzing the additional outputs may be helpful to understand
+#' model behavior and support finding potential issues in model parameterization.
+#'
+#' Optional outputs are enabled by setting the parameter `nout` to a value greater
+#' than zero. If `nout` is set to `n`, then the first `n` optional output columns
+#' will be returned along the normal simulation result.
+#'
+#' Which optional outputs are available depends on the model/scenario at hand.
+#' Please refer to the model documentation for details.
+#' As an example, the [GUTS-RED-IT][GUTS_RED_IT()] model supports adding the
+#' external toxicant concentration to the output by setting `nout=1`:
+#'
+#' `minnow_it %>% simulate(nout=1)`
+#'
 #' ### Numerical precision and stability
 #' Each model was assigned a default ODE solver which handles most of the
 #' occurring inputs well. In most cases, this will be an explicit numerical
@@ -156,7 +172,9 @@ simulate_transfer <- function(scenario, times, in_sequence=FALSE, ...) {
     tr_points <- scenario@transfer.times
   }
   if(length(tr_points) > 0)
-    ends_on_transfer <- tr_points[length(tr_points)] == t_max
+    ends_on_transfer <- tail(tr_points, 1) == t_max
+  # limit vector to transfer time points which occur during the simulated period.
+  # but exclude the starting time as a potential transfer
   tr_points <- tr_points[tr_points > t_min & tr_points <= t_max]
 
   # biomass level after each transfer
@@ -187,10 +205,14 @@ simulate_transfer <- function(scenario, times, in_sequence=FALSE, ...) {
     out <- solver(scenario, times=period, ...)
 
     # append results to output data.frame
-    if(i==1)
+    if(i==1) {
       df <- rbind(df, out)
-    else
-      df <- rbind(df, out[-1,])
+    } else {
+      # append simulation results, but exclude values for the starting time point
+      # where the transfer occurred. the starting time point `t` could be included more
+      # than once in the `times` or `period` vector
+      df <- rbind(df, out[-seq(sum(period == t)),])
+    }
 
     # Transfer a fixed number of biomass to a new medium:
     # use last state as starting point

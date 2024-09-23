@@ -491,12 +491,12 @@ parameters:</p>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co"># of the fathead minnow and Chlorpyrifos (Geiger et al. 1988)</span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>minnow_it <span class="sc">%&gt;%</span></span>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">simulate</span>()</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;   time         D H</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 1    0 0.0000000 0</span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 2    1 0.7075891 0</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 3    2 0.9144958 0</span></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 4    3 0.9749972 0</span></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 5    4 0.9926889 0</span></span></code></pre></div>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;   time         D H         S</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 1    0 0.0000000 0 1.0000000</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 2    1 0.7075891 0 0.9999854</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 3    2 0.9144958 0 0.9999558</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 4    3 0.9749972 0 0.9999417</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 5    4 0.9926889 0 0.9999370</span></span></code></pre></div>
 <p>The table returned by <code>simulate()</code> contains the value of
 each state variable at the requested output time points. In case of the
 <em>GUTS-RED-IT</em> model, this comprises the state variables
@@ -868,9 +868,9 @@ simultaneously</li>
 </ul>
 <p>Parameter fitting builds upon the <em>R</em> function
 <code>stats::optim()</code> and it exposes full control over the fitting
-process. In this context, a dataset is represented by a
-<code>CalibrationSet</code> object which consists of a scenario,
-observed data, and an optional weighting term. Please refer to the <a href="cvasi-2-howto.html">Modeling Howto</a> for a description of the
+process. In this context, a dataset is represented by a <em>calibration
+set</em> object which consists of a scenario, observed data, and an
+optional weighting term. Please refer to the <a href="cvasi-2-howto.html">Modeling Howto</a> for a description of the
 fitting process using <code>calibrate()</code>.</p>
 <p>As an alternative for <em>GUTS-RED</em> type models, model parameters
 can also be obtained using the <a href="https://cran.r-project.org/package=morse"><em>morse</em>
