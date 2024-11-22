@@ -5,6 +5,9 @@ effect4tolerance <- function(tolerance) {
 }
 
 test_that("effect levels", {
+  # avoid some common bogus messages on package load
+  suppressMessages(suppressWarnings(require(purrr, quietly=TRUE)))
+
   ## requested effect levels
   expect_named(epx(minnow_it,level=23),c("scenario","L.EP23"))
   expect_named(epx(minnow_it,level=c(10,20)),c("scenario","L.EP10","L.EP20"))
@@ -12,7 +15,7 @@ test_that("effect levels", {
 
 test_that("effect_tolerance", {
   ## effect.tolerance
-  ## result are geting more precise if we decrease the tolerance
+  ## result are getting more precise if we decrease the tolerance
   exact <- effect4tolerance(1e-10)
   expect_gt(abs(exact-effect4tolerance(1e-1)), abs(exact-effect4tolerance(1e-2)))
   expect_gt(abs(exact - effect4tolerance(1e-1)), 0.01)
@@ -46,7 +49,7 @@ test_that("factor cutoff", {
 })
 
 test_that("ep_only", {
-  source(test_path("class-DummyScenario.R"))
+  source(test_path("class-DummyScenario.R"), local=TRUE)
 
   sc <- DummyScenario()
 
@@ -62,7 +65,7 @@ test_that("ep_only", {
 })
 
 test_that("long_format", {
-  source(test_path("class-DummyScenario.R"))
+  source(test_path("class-DummyScenario.R"), local=TRUE)
 
   sc <- DummyScenario() %>% set_exposure(data.frame(t=0, c=1))
 
@@ -84,7 +87,7 @@ test_that("long_format", {
 })
 
 test_that("error handling", {
-  source(test_path("class-DummyScenario.R"))
+  source(test_path("class-DummyScenario.R"), local=TRUE)
 
   # only a single scenario and it failed
   expect_warning(rs <- epx(DummyFails(), level=10))

@@ -5,13 +5,15 @@
 # See Jager (2020, DOI: 10.1016/j.ecolmodel.2019.108904 ) for details.
 #
 
+
 ########################
 ## Class definition
 ########################
 
-#' @include class-Deb.R solver.R fx.R
+#' @include man-deb.R
 #' @export
-setClass("DebTox", contains="DebScenario")
+setClass("DebTox", contains="Deb")
+
 
 ########################
 ## Constructor
@@ -122,26 +124,26 @@ setClass("DebTox", contains="DebScenario")
 #' which considers exposure to a toxicant and one simulation without exposure, i.e.
 #' a control. See also [effect()].
 #'
-#' ## Output variables
+#' ## Simulation output
 #'
 #' The following intermediary model variables can be added to the model
 #' output on demand. Simply set the optional parameter `nout` to the
 #' required output level and pass it to [simulate()].
 #'
-#'  - `nout >= 1`: `f`, actual scaled response
-#'  - `nout >= 2`: `fR`, actual f considering starvation
-#'  - `nout >= 3`: `kd`, actual kd
-#'  - `nout >= 4`: `s`, stress level
-#'  - `nout >= 5`: `h`, hazard rate
-#'  - `nout >= 6`: `sA`, stress factor on assimilation/feeding
-#'  - `nout >= 7`: `sM`, stress factor on maintenance
-#'  - `nout >= 8`: `sG`, stress factor on growth costs
-#'  - `nout >= 9`: `sR`, stress factor on reproduction costs
-#'  - `nout >= 10`: `sH`, stress factor on hazard to reproduction
-#'  - `nout >= 11`: `xu`, damage feedback factor for surf:vol scaling uptake rate
-#'  - `nout >= 12`: `xe`, damage feedback factor for surf:vol scaling elimination rate
-#'  - `nout >= 13`: `xG`, damage feedback factor for growth dilution
-#'  - `nout >= 14`: `xR`, damage feedback factor for losses with repro
+#'  - `nout` >= 1: `f`, actual scaled response
+#'  - `nout` >= 2: `fR`, actual f considering starvation
+#'  - `nout` >= 3: `kd`, actual kd
+#'  - `nout` >= 4: `s`, stress level
+#'  - `nout` >= 5: `h`, hazard rate
+#'  - `nout` >= 6: `sA`, stress factor on assimilation/feeding
+#'  - `nout` >= 7: `sM`, stress factor on maintenance
+#'  - `nout` >= 8: `sG`, stress factor on growth costs
+#'  - `nout` >= 9: `sR`, stress factor on reproduction costs
+#'  - `nout` >= 10: `sH`, stress factor on hazard to reproduction
+#'  - `nout` >= 11: `xu`, damage feedback factor for surf:vol scaling uptake rate
+#'  - `nout` >= 12: `xe`, damage feedback factor for surf:vol scaling elimination rate
+#'  - `nout` >= 13: `xG`, damage feedback factor for growth dilution
+#'  - `nout` >= 14: `xR`, damage feedback factor for losses with repro
 #'
 #' ## Model history and changes
 #'
@@ -181,6 +183,7 @@ DEBtox <- function() {
       exposure=no_exposure()
   )
 }
+
 
 ########################
 ## Simulation

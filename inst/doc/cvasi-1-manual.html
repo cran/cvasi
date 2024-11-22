@@ -10,7 +10,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<meta name="author" content="Nils Kehrein" />
+<meta name="author" content="N. Kehrein" />
 
 
 <title>User Manual</title>
@@ -338,8 +338,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">User Manual</h1>
-<h4 class="author">Nils Kehrein</h4>
-<h4 class="date">03 May, 2024</h4>
+<h4 class="author">N. Kehrein</h4>
+<h4 class="date">24 October, 2024</h4>
 
 
 <div id="TOC">
@@ -528,10 +528,21 @@ multiple TKTD models, for instance:</p>
 <li><code>Myrio()</code>, an adaption of Klein <em>et al.</em> (2021) to
 <em>Myriophyllum</em> at Tier 2C</li>
 </ul></li>
+<li>Algae models
+<ul>
+<li><code>Algae_Weber()</code>, published by Weber <em>et al.</em>
+(2012)</li>
+<li><code>Algae_TKTD()</code>, based on Weber <em>et al.</em> (2012),
+but with scaled damage</li>
+<li><code>Algae_Simple()</code>, simplified growth model without
+external forcing variables</li>
+</ul></li>
 <li>Dynamic Energy Budget (<em>DEB</em>) models
 <ul>
 <li><code>DEB_abj()</code>, the <em>abj</em> model with type M
 acceleration</li>
+<li><code>DEBtox()</code>, as implemented in the <em>DEBtox2019</em>
+module of <a href="https://www.debtox.info/byom.html"><em>BYOM</em></a></li>
 </ul></li>
 </ul>
 <p>The listed functions create objects that will carry all data and

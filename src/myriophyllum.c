@@ -87,7 +87,7 @@ void myrio_forc(void (* odeforcs)(int *, double *))
  * @param b slope parameter (-)
  * @return value from the interval [0,1]
  */
-double fCint_photo(double C_int_unb) {
+double fCint_photo_(double C_int_unb) {
   double pow_C_int_b = pow(C_int_unb, b);
   return(1 - E_max * pow_C_int_b / (pow(EC50_int, b) + pow_C_int_b));
 }
@@ -119,7 +119,7 @@ void myrio_func(int *neq, double *t, double *y, double *ydot, double *yout, int*
   //
 
   // Photosynthesis dependency function
-  double f_photo = fCint_photo(C_int_unb);
+  double f_photo = fCint_photo_(C_int_unb);
 
   //
   // Population growth
@@ -137,21 +137,18 @@ void myrio_func(int *neq, double *t, double *y, double *ydot, double *yout, int*
   //
   // Additional output variables
   //
-  if(*ip >= 1) {
+  if(*ip > 0)
+  {
     yout[0] = C_int;
-  }
-  if(*ip >= 2) {
-    yout[1] = BM / r_DW_TSL; // total shoot length
-  }
-  if(*ip >= 3) { // response function
-    yout[2] = f_photo;
-  }
-  if(*ip >= 5) { // toxicant concentration
-    yout[3] = C_int_unb;
-    yout[4] = C_ext;
-  }
-  if(*ip>=7) { // derivatives
-    yout[5] = dBM;
-    yout[6] = dM_int;
+    // total shoot length
+    if(*ip > 1) yout[1] = BM / r_DW_TSL;
+    // response function
+    if(*ip > 2) yout[2] = f_photo;
+    // toxicant concentration
+    if(*ip > 3) yout[3] = C_int_unb;
+    if(*ip > 4) yout[4] = C_ext;
+    // derivatives
+    if(*ip > 5) yout[5] = dBM;
+    if(*ip > 6) yout[6] = dM_int;
   }
 }

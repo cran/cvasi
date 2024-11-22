@@ -1,22 +1,15 @@
-#' Dynamic Energy Budget (DEB) models
-#'
-#' Supported models:
-#' * [DEB_abj]
-#' * [DEBtox]
-#'
-#' @name DEB-models
-#' @family DEB models
-#' @family scenarios
-#' @aliases DebScenario-class
-NULL
-
-# Parent class for all DEB related models/scenarios
-#' @export
-setClass("DebScenario", contains="EffectScenario")
+########################
+## Class definition
+########################
 
 #' @export
-setClass("DebAbj", contains="DebScenario")
+#' @include man-deb.R
+setClass("DebAbj", contains="Deb")
 
+
+########################
+## Constructor
+########################
 
 #' DEB_abj
 #'
@@ -86,6 +79,21 @@ setClass("DebAbj", contains="DebScenario")
 #' which considers exposure to a toxicant and one simulation without exposure, i.e.
 #' a control. See also [effect()].
 #'
+#' @section Simulation output:
+#' Simulation results will contain the state variables.
+#' It is possible to amend the output of [simulate()] with additional model
+#' quantities that are not state variables, for e.g. debugging purposes or to
+#' analyze model behavior. To enable or disable additional outputs, use the
+#' optional argument `nout` of [simulate()]. As an example, set `nout=2` to
+#' enable reporting of the acceleration factor (`MV`) and the mobilization flux
+#' (`pC`). Set `nout=0` to disable additional outputs (default).
+#'
+#' The available output levels are as follows:
+#' - `nout` >= 1: `MV` acceleration factor (-)
+#' - `nout` >= 2: `pC` mobilization flux (J/d)
+#' - `nout` >= 3: `pA` assimilation flux (J/d)
+#' - `nout` >= 4: `pJ` energy invested in maturity flux (J/d)
+#'
 #' @return an S4 object of type [DebAbj-class]
 #' @export
 #' @family DEB models
@@ -117,3 +125,56 @@ DEB_abj <- function() {
       exposure=no_exposure()
   )
 }
+
+
+########################
+## Simulation
+########################
+
+#' @importFrom deSolve ode
+solver_deb_abj <- function(scenario, times, approx=c("linear","constant"), f=1,
+                           method="lsoda", ...) {
+  # use time points from scenario if nothing else is provided
+  if(missing(times))
+    times <- scenario@times
+  # check if at least two time points are present
+  if(length(times)<2) stop("times vector is not an interval")
+
+  approx <- match.arg(approx)
+  # make sure that parameters are present and in required order
+  params.req <- c("p_M","v","k_J","p_Am","kap","E_G","f","E_Hj","E_Hp","kap_R","ke","c0",
+                  "cT","L_b","L_j","MoA")
+  # additional output variables
+  outnames <- c("MV","pC","pA","pJ")
+
+  params <- scenario@param
+  if(is.list(params))
+    params <- unlist(params)
+
+  # check for missing parameters
+  params.missing <- setdiff(params.req, names(params))
+  if(length(params.missing)>0)
+    stop(paste("missing parameters:",paste(params.missing,sep=",",collapse=",")))
+
+  # reorder parameters for deSolve
+  params <- params[params.req]
+
+  # create forcings list
+  forcings <- list(scenario@exposure@series)
+
+  # run solver
+  as.data.frame(ode(y=scenario@init, times=times, parms=params, method=method,
+                    dllname="cvasi", initfunc="deb_abj_init", func="deb_abj_func", initforc="deb_abj_forc",
+                    forcings=forcings, fcontrol=list(method=approx, rule=2, f=f, ties="ordered"),
+                    outnames=outnames, ...))
+}
+#' @include solver.R
+#' @describeIn solver Numerically integrates DEB_abj models
+setMethod("solver", "DebAbj", function(scenario, times, ...) solver_deb_abj(scenario, times, ...))
+
+
+########################
+## Effects
+########################
+
+# uses the default fx implementation, nothing more required

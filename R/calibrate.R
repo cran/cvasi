@@ -301,7 +301,6 @@ calibrate_set <- function(x, par, endpoint, output, metric_fun, metric_total,
   }
 
   # start optimization
-  tested <- data.frame()
   stats::optim(par=par,
                fn=optim_set,
                sets=x,
@@ -309,11 +308,8 @@ calibrate_set <- function(x, par, endpoint, output, metric_fun, metric_total,
                output=output,
                err_fun=err_fun,
                verbose=verbose,
-               lenvir=environment(),
                ...) -> fit
 
-  # save data.frame of tested values
-  fit$tested <- tested
   # re-set names in case method 'Brent' dropped them
   names(fit$par) <- par_names
   # optimization successful?
@@ -333,7 +329,7 @@ calibrate_set <- function(x, par, endpoint, output, metric_fun, metric_total,
 # Calculate error for a single set of parameters, functions is called by
 # `optim()` repeatedly
 optim_set <- function(par, sets, par_names, output, err_fun, verbose=verbose,
-                      ode_method, lenvir, ...) {
+                      ode_method, ...) {
   if(verbose) {
     message(paste("Testing:", paste(par_names, par, sep="=", collapse=",")), appendLF=FALSE)
   }
@@ -414,9 +410,6 @@ optim_set <- function(par, sets, par_names, output, err_fun, verbose=verbose,
   if(verbose) {
     message(paste(", Error:", err_total))
   }
-  par <- as.list(par)
-  par[["error"]] <- err_total
-  lenvir$tested <- dplyr::bind_rows(lenvir$tested, par)
 
   err_total
 }

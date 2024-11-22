@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   fig.path = "../doc/figures/howto-",
@@ -32,11 +32,11 @@ myscenario@forcings.req # forcings required for effect calculations
 myscenario@endpoints    # available effect endpoints
 myscenario@control.req  # are control runs required for effect calculation?
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  # Call the help page of effect scenarios class
 #  ?scenarios
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  # Call the help page of the biomass transfer class
 #  ?Transferable
 
@@ -117,7 +117,7 @@ ggplot(result2) +
   geom_line(aes(time, BM)) +
   labs(x="Time (days)", y="Biomass (g_dw/m2)", title="Biomass transfer at custom time points")
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  # Call the help page of set_transfer
 #  ?set_transfer
 
@@ -245,7 +245,7 @@ res$EC50$confidence_interval
 res$b$confidence_interval
 
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  # Call the help page for more information about the parameter space explorer
 #  ?explore_space
 #  
@@ -276,7 +276,7 @@ sc2 <- metsulfuron %>%
 seq <- sequence(list(sc1, sc2))
 simulate(seq)
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  # Call the help page of `sequence`
 #  ?sequence
 
@@ -292,7 +292,7 @@ metsulfuron %>%
 ## ----eval=FALSE---------------------------------------------------------------
 #  vignette("future-1-overview", package="future")
 
-## ---- warning=FALSE-----------------------------------------------------------
+## ----warning=FALSE------------------------------------------------------------
 ## An exemplary implementation of the GUTS-RED-SD TKTD model ##
 # Model ODEs following the deSolve specification
 sd_ode <- function(t, state, params) {
@@ -304,10 +304,10 @@ sd_ode <- function(t, state, params) {
   })
 }
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  vignette("deSolve", package="deSolve")
 
-## ---- warning=FALSE-----------------------------------------------------------
+## ----warning=FALSE------------------------------------------------------------
 ## Properties of a sample scenario ##
 init <- c(Dw=0, H=0)                         # initial state
 times <- 0:5                                 # output time points [0,5]

@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   fig.path = "../doc/figures/manual-",
@@ -7,6 +7,8 @@ knitr::opts_chunk$set(
 
 ## ----setup, include=FALSE-----------------------------------------------------
 library(cvasi)
+library(purrr)
+library(dplyr)
 
 ## -----------------------------------------------------------------------------
 library(cvasi)
@@ -45,7 +47,7 @@ GUTS_RED_IT() %>%
 minnow_it %>%
   simulate()
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  # Access the package help on GUTS-RED type models
 #  ?"GUTS-RED-models"
 
@@ -104,14 +106,14 @@ metsulfuron %>%
   set_times(0:7) %>%
   simulate(hmax=0.01)
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  ?cvasi::simulate
 
 ## -----------------------------------------------------------------------------
 # GUTS-RED-IT scenario of the fathead minnow and chlorpyrifos
 minnow_it %>% effect()
 
-## ---- include=FALSE-----------------------------------------------------------
+## ----include=FALSE------------------------------------------------------------
 # make sure that value in text are still up to date
 testthat::expect_equal(minnow_it %>% effect() %>% dplyr::pull(L), 6.297e-5, tolerance=0.001)
 
@@ -126,7 +128,7 @@ americamysis %>%
 # Derive maximum effect level of all exposure windows
 mydeb %>% effect()
 
-## ---- include=FALSE-----------------------------------------------------------
+## ----include=FALSE------------------------------------------------------------
 # make sure that value in text are still up to date
 testthat::expect_equal(mydeb %>% effect() %>% dplyr::pull(L), 0.0521, tolerance=0.001)
 
@@ -136,7 +138,7 @@ mydeb %>%
   set_endpoints("L") %>%
   epx()
 
-## ---- include=FALSE-----------------------------------------------------------
+## ----include=FALSE------------------------------------------------------------
 # make sure that value in text are still up to date
 testthat::expect_equal(mydeb %>%  set_endpoints("L") %>% epx(ep_only=TRUE) %>% unlist(use.names=FALSE), c(1.162598, 1.711914), ignore_attr=TRUE, tolerance=0.01)
 

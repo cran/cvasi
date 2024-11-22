@@ -1,10 +1,14 @@
+########################
+## Organizing man pages
+########################
+
 #' Algae models
 #'
 #' Overview of supported *Algae* models
 #'
 #' - [Algae_Weber()] by Weber *et al.* (2012)
 #' - [Algae_TKTD()] based on Weber *et al.* (2012), but with scaled damage
-#' - [Algae_Simple()] Simple growth model without additional forcing variables
+#' - [Algae_Simple()] simplified growth model without additional forcing variables
 #'
 #' @inheritSection Transferable Biomass transfer
 #'
@@ -23,11 +27,16 @@
 #'
 #' @name Algae-models
 #' @family algae models
-#' @family scenarios
+#' @family models
 #' @seealso [Lemna-models], [Transferable]
 #' @include class-Transferable.R
 #' @aliases Algae-class
 NULL
+
+
+########################
+## Class definitions
+########################
 
 # Generic Algae class
 #' @export
@@ -35,15 +44,29 @@ setClass("Algae", contains = c("Transferable", "EffectScenario"))
 
 # Algae model with exponential growth and forcings (P, I)
 #' @export
-setClass("AlgaeWeberScenario", contains = "Algae")
+setClass("AlgaeWeber", contains = "Algae")
+# for backwards compatibility
+#' @export
+setClass("AlgaeWeberScenario", contains = "AlgaeWeber")
 
 # Algae model with exponential growth and scaled internal damage
 #' @export
-setClass("AlgaeTKTDScenario", contains = "Algae")
+setClass("AlgaeTKTD", contains = "Algae")
+# for backwards compatibility
+#' @export
+setClass("AlgaeTKTDScenario", contains = "AlgaeTKTD")
 
 # Algae model with exponential growth without forcings
 #' @export
-setClass("AlgaeSimpleScenario", contains = "Algae")
+setClass("AlgaeSimple", contains = "Algae")
+# for backwards compatibility
+#' @export
+setClass("AlgaeSimpleScenario", contains = "AlgaeSimple")
+
+
+########################
+## Constructor
+########################
 
 #' Algae model with exponential growth and forcings (I, T)
 #'
@@ -99,13 +122,22 @@ setClass("AlgaeSimpleScenario", contains = "Algae")
 #' @section Simulation output:
 #' Simulation results will contain the state variables Biomass (`A`), mass of
 #' internal phosphorous (`Q`), mass of external phosphorous (`P`) and the external
-#' concentration (`C`). The derivatives are also available as additional output.
+#' concentration (`C`).
 #'
-#' - `nout >= 4`
-#'    - `dA`, biomass derivative (µg)
-#'    - `dQ`, internal phosphorous derivative (mg P/ug fresh wt)
-#'    - `dP`, external phosphorous derivative (mg P L-1)
-#'    - `dC`, external concentration derivative (ug L-1)
+#' It is possible to amend the output of [simulate()] with additional model
+#' quantities that are not state variables, for e.g. debugging purposes or to
+#' analyze model behavior. To enable or disable additional outputs, use the
+#' optional argument `nout` of [simulate()]. As an example, set `nout=2` to
+#' enable reporting of model derivatives `dA` and `dQ`. Set `nout=0` to disable
+#' additional outputs (default).
+#'
+#' The available output levels are as follows:
+#'
+#' - Derivatives
+#'    - `nout >= 1`: `dA`, biomass derivative (µg)
+#'    - `nout >= 2`: `dQ`, internal phosphorous derivative (mg P/ug fresh wt)
+#'    - `nout >= 3`: `dP`, external phosphorous derivative (mg P L-1)
+#'    - `nout >= 4`: `dC`, external concentration derivative (ug L-1)
 #'
 #' @section Parameter boundaries:
 #' Default values for parameter boundaries are set for all parameters by expert
@@ -130,32 +162,32 @@ setClass("AlgaeSimpleScenario", contains = "Algae")
 #' of pesticides for aquatic organisms. EFSA Journal, 16(8), 5377.
 #' \doi{10.2903/j.efsa.2018.5377}
 #'
-#' @return an S4 object of type [AlgaeWeberScenario-class]
+#' @return an S4 object of type [AlgaeWeber-class]
 #' @seealso [Scenarios], [Transferable]
 #' @family algae models
 #' @export
-#' @aliases AlgaeWeberScenario-class
+#' @aliases AlgaeWeber-class AlgaeWeberScenario-class
 Algae_Weber <- function() {
-  new("AlgaeWeberScenario",
-    name = "Algae_Weber",
-    param.req = c("mu_max", "m_max", "v_max", "k_s", "Q_min", "Q_max", "R_0", "D",
-                  "T_opt", "T_min", "T_max", "I_opt", "EC_50", "b", "k"
-    ),
-    # default values as defined by Weber et al. (2012)
-    param = list(mu_max = 1.7380, m_max = 0.0500, v_max = 0.0520, k_s = 0.0680,
-                 Q_min = 0.0011, Q_max = 0.0144, R_0 = 0.36, D = 0.5,
-                 T_opt = 27, T_min = 0, T_max = 35, I_opt = 120
-    ),
-    # boundary presets defined by expert judgement
-    param.bounds = list(mu_max=c(0, 4),  EC_50=c(0, 1e6), b=c(0.1, 20)),
-    endpoints = c("A", "r"),
-    forcings.req=c("T_act", "I"),
-    control.req = TRUE,
-    init = c(A = 1, Q = 0.01, P = 0.18, C = 0),
-    transfer.interval = -1,
-    transfer.biomass = 1,
-    transfer.comp.biomass = "A",
-    transfer.comp.scaled = "Q"
+  new("AlgaeWeber",
+      name = "Algae_Weber",
+      param.req = c("mu_max", "m_max", "v_max", "k_s", "Q_min", "Q_max", "R_0", "D",
+                    "T_opt", "T_min", "T_max", "I_opt", "EC_50", "b", "k"
+      ),
+      # default values as defined by Weber et al. (2012)
+      param = list(mu_max = 1.7380, m_max = 0.0500, v_max = 0.0520, k_s = 0.0680,
+                   Q_min = 0.0011, Q_max = 0.0144, R_0 = 0.36, D = 0.5,
+                   T_opt = 27, T_min = 0, T_max = 35, I_opt = 120
+      ),
+      # boundary presets defined by expert judgement
+      param.bounds = list(mu_max=c(0, 4),  EC_50=c(0, 1e6), b=c(0.1, 20)),
+      endpoints = c("A", "r"),
+      forcings.req=c("T_act", "I"),
+      control.req = TRUE,
+      init = c(A = 1, Q = 0.01, P = 0.18, C = 0),
+      transfer.interval = -1,
+      transfer.biomass = 1,
+      transfer.comp.biomass = "A",
+      transfer.comp.scaled = "Q"
   )
 }
 
@@ -211,13 +243,21 @@ Algae_Weber <- function() {
 #' @section Simulation output:
 #' Simulation results will contain the state variables Biomass (`A`), mass of
 #' internal phosphorous (`Q`), mass of external phosphorous (`P`) and the damage
-#' concentration (`Dw`). The derivatives are also available as additional output.
+#' concentration (`Dw`).
 #'
-#' - `nout >= 4`
-#'    - `dA`, biomass derivative (µg)
-#'    - `dQ`, internal phosphorous derivative (mg P/ug fresh wt)
-#'    - `dP`, external phosphorous derivative (mg P L-1)
-#'    - `dDw`, damage concentration derivative (ug L-1)
+#' It is possible to amend the output of [simulate()] with additional model
+#' quantities that are not state variables, for e.g. debugging purposes or to
+#' analyze model behavior. To enable or disable additional outputs, use the
+#' optional argument `nout` of [simulate()]. As an example, set `nout=2` to
+#' enable reporting of model derivatives `dA` and `dQ`. Set `nout=0` to disable
+#' additional outputs (default).
+#'
+#' The available output levels are as follows:
+#' - Derivatives
+#'    - `nout >= 1`: `dA`, biomass derivative (µg)
+#'    - `nout >= 2`: `dQ`, internal phosphorous derivative (mg P/ug fresh wt)
+#'    - `nout >= 3`: `dP`, external phosphorous derivative (mg P L-1)
+#'    - `nout >= 4`: `dDw`, damage concentration derivative (ug L-1)
 #'
 #' @references
 #' Weber D, Schaeffer D, Dorgerloh M, Bruns E, Goerlitz G, Hammel K, Preuss TG
@@ -227,13 +267,13 @@ Algae_Weber <- function() {
 #' Pseudokirchneriella subcapitata. Environmental Toxicology and
 #' Chemistry, 31, 899-908. \doi{10.1002/etc.1765}
 #'
-#' @return an S4 object of type [AlgaeTKTDScenario-class]
+#' @return an S4 object of type [AlgaeTKTD-class]
 #' @seealso [Scenarios], [Transferable]
 #' @family algae models
 #' @export
-#' @aliases AlgaeTKTDScenario-class
+#' @aliases AlgaeTKTD-class AlgaeTKTDScenario-class
 Algae_TKTD <- function() {
-  new("AlgaeTKTDScenario",
+  new("AlgaeTKTD",
       name = "Algae_TKTD",
       param.req = c("mu_max", "m_max", "v_max", "k_s",
                     "Q_min", "Q_max",
@@ -304,13 +344,21 @@ Algae_TKTD <- function() {
 #' to avoid extreme values during calibration (particularly likelihood profiling)
 #'
 #' @section Simulation output:
-#' Simulation results will contain the state variables biomass (`A`) and in case
-#' of scaled damage the damage concentration (`Dw`). The derivatives are also
-#' available as additional output.
+#' Simulation results will contain the state variables biomass (`A`) and
+#' scaled damage concentration (`Dw`).
 #'
-#' - `nout >= 2`
-#'    - `dA`, biomass derivative (µg)
-#'    - `dDw`, damage concentration derivative (ug L-1)
+#' It is possible to amend the output of [simulate()] with additional model
+#' quantities that are not state variables, for e.g. debugging purposes or to
+#' analyze model behavior. To enable or disable additional outputs, use the
+#' optional argument `nout` of [simulate()]. As an example, set `nout=2` to
+#' enable reporting of external concentration (`Cw`) and growth scaling factor
+#' (`f_growth`). Set `nout=0` to disable additional outputs (default).
+#'
+#' The available output levels are as follows:
+#' - `nout >= 1`: `Cw` external concentration (ug L-1)
+#' - `nout >= 2`: `f_growth` growth scaling factor (-)
+#' - `nout >= 3`: `dA`, biomass derivative (µg)
+#' - `nout >= 4`: `dDw`, damage concentration derivative (ug L-1)
 #'
 #'
 #' @references
@@ -321,13 +369,13 @@ Algae_TKTD <- function() {
 #' Pseudokirchneriella subcapitata. Environmental Toxicology and
 #' Chemistry, 31, 899-908. \doi{10.1002/etc.1765}
 #'
-#' @return an S4 object of type [AlgaeSimpleScenario-class]
+#' @return an S4 object of type [AlgaeSimple-class]
 #' @seealso [Scenarios], [Transferable]
 #' @family algae models
 #' @export
-#' @aliases AlgaeSimpleScenario-class
+#' @aliases AlgaeSimple-class AlgaeSimpleScenario-class
 Algae_Simple <- function() {
-  new("AlgaeSimpleScenario",
+  new("AlgaeSimple",
       name = "Algae_Simple",
       param.req = c("mu_max", "EC_50", "b", "kD", "dose_response", "scaled"),
       # default values as defined by Weber et al. (2012)
@@ -345,3 +393,196 @@ Algae_Simple <- function() {
       transfer.comp.biomass = "A"
   )
 }
+
+
+########################
+## Simulation
+########################
+
+# Solver function for Algae_Weber models
+# @param scenario Scenario object
+# @param times numeric vector, time points for result set
+# @param approx string, interpolation method of exposure series, see [stats::approxfun()]
+# @param f if `approx="constant"`, a number between 0 and 1 inclusive, see [stats::approxfun()]
+# @param rule how to handle data points outside of time-series, see [deSolve::forcings]
+# @param method string, numerical solver used by [deSolve::ode()]
+# @param hmax numeric, maximum step length in time, see [deSolve::ode()]
+# @param ... additional arguments passed to [deSolve::ode()]
+#' @importFrom deSolve ode
+solver_algae_weber <- function(scenario, times, approx = c("linear","constant"),
+                               f = 1, method = "lsoda", hmax = 0.1, ...) {
+  # use time points from scenario if nothing else is provided
+  if(missing(times))
+    times <- scenario@times
+  # check if at least two time points are present
+  if(length(times)<2)
+    stop("times vector is not an interval")
+
+  params.req = c("mu_max", "m_max", "v_max", "k_s", "Q_min", "Q_max", "R_0", "D",
+                 "T_opt", "T_min", "T_max", "I_opt", "EC_50", "b", "k"
+  )
+
+  params <- scenario@param
+  if(is.list(params))
+    params <- unlist(params)
+
+  # reorder parameters for deSolve
+  params <- params[params.req]
+
+  if(is.list(params)) params <- unlist(params)
+  approx <- match.arg(approx)
+
+  # create forcings list
+  forcings <- list(
+    scenario@exposure@series,
+    scenario@forcings$I,
+    scenario@forcings$T_act
+  )
+
+  # set names of additional output variables
+  outnames <- c("dA", "dQ", "dP", "dC")
+
+  # run solver
+  as.data.frame(ode(y = scenario@init, times=times, initfunc = "algae_init",
+                    func = "algae_func", initforc = "algae_forc", parms = params,
+                    forcings = forcings, fcontrol = list(rule = 2, method = approx, f = f, ties = "ordered"),
+                    dllname = "cvasi", method = method, hmax = hmax, outnames = outnames,
+                    ...))
+}
+
+#' @include solver.R
+#' @describeIn solver numerically integrates Algae_Weber models
+setMethod("solver", "AlgaeWeber", solver_algae_weber)
+
+# Solver function for Algae_TKTD models
+# @param scenario Scenario object
+# @param times numeric vector, time points for result set
+# @param approx string, interpolation method of exposure series, see [stats::approxfun()]
+# @param f if `approx="constant"`, a number between 0 and 1 inclusive, see [stats::approxfun()]
+# @param rule how to handle data points outside of time-series, see [deSolve::forcings]
+# @param method string, numerical solver used by [deSolve::ode()]
+# @param hmax numeric, maximum step length in time, see [deSolve::ode()]
+# @param ... additional arguments passed to [deSolve::ode()]
+#' @importFrom deSolve ode
+solver_algae_tktd <- function(scenario, times, approx = c("linear","constant"),
+                              f = 1, method = "lsoda", hmax = 0.1, ...) {
+  # use time points from scenario if nothing else is provided
+  if(missing(times))
+    times <- scenario@times
+  # check if at least two time points are present
+  if(length(times)<2)
+    stop("times vector is not an interval")
+
+  params.req = c("mu_max", "m_max", "v_max", "k_s",
+                 "Q_min", "Q_max",
+                 "T_opt", "T_min", "T_max", "I_opt",
+                 "EC_50", "b", "kD", "dose_resp"
+  )
+
+  params <- scenario@param
+  if(is.list(params))
+    params <- unlist(params)
+
+  # reorder parameters for deSolve
+  params <- params[params.req]
+
+  # create forcings list
+  forcings <- list(
+    scenario@exposure@series,
+    scenario@forcings$I,
+    scenario@forcings$T_act
+  )
+
+  if(is.list(params)) params <- unlist(params)
+  approx <- match.arg(approx)
+
+  # set names of additional output variables
+  outnames <- c("dA", "dQ", "dP", "dDw")
+
+  # run solver
+  as.data.frame(ode(y = scenario@init, times=times, initfunc = "algae_TKTD_init",
+                    func = "algae_TKTD_func", initforc = "algae_TKTD_forc",
+                    parms = params, forcings = forcings, fcontrol = list(rule = 2, method = approx, f = f, ties = "ordered"),
+                    dllname = "cvasi", method = method, hmax = hmax, outnames = outnames,
+                    ...))
+}
+
+#' @describeIn solver numerically integrates Algae_TKTD models
+setMethod("solver", "AlgaeTKTD", solver_algae_tktd)
+
+
+# Solver function for Algae_Weber models
+# @param scenario Scenario object
+# @param times numeric vector, time points for result set
+# @param approx string, interpolation method of exposure series, see [stats::approxfun()]
+# @param f if `approx="constant"`, a number between 0 and 1 inclusive, see [stats::approxfun()]
+# @param rule how to handle data points outside of time-series, see [deSolve::forcings]
+# @param method string, numerical solver used by [deSolve::ode()]
+# @param hmax numeric, maximum step length in time, see [deSolve::ode()]
+# @param ... additional arguments passed to [deSolve::ode()]
+#' @importFrom deSolve ode
+solver_algae_simple <- function(scenario, times, approx = c("linear","constant"),
+                                f = 1, method = "ode45", hmax = 0.01, ...) {
+  # use time points from scenario if nothing else is provided
+  if(missing(times))
+    times <- scenario@times
+  # check if at least two time points are present
+  if(length(times)<2)
+    stop("times vector is not an interval")
+
+  params <- scenario@param
+  if(is.list(params))
+    params <- unlist(params)
+
+  # create forcings list
+  forcings <- list(scenario@exposure@series, scenario@forcings$f_growth)
+
+  #required for C code
+  params.req = c("mu_max",
+                 "EC_50", "b", "kD",
+                 "scaled", "dose_response"
+  )
+  # reorder parameters for deSolve
+  params <- params[params.req]
+
+  if(is.list(params)) params <- unlist(params)
+  approx <- match.arg(approx)
+
+  # set names of additional output variables
+  outnames <- c("Cw", "f_growth", "dA", "dDw")
+
+  # run solver
+  as.data.frame(ode(y = scenario@init, times=times, initfunc = "algae_simple_init",
+                    func = "algae_simple_func", initforc = "algae_simple_forc",
+                    parms = params, forcings = forcings, fcontrol = list(rule = 2, method = approx, f = f, ties = "ordered"),
+                    dllname = "cvasi", method = method, hmax = hmax, outnames = outnames,
+                    ...))
+}
+
+#' @describeIn solver numerically integrates Algae_Simple models
+setMethod("solver", "AlgaeSimple", solver_algae_simple)
+
+
+########################
+## Effects
+########################
+
+# Calculate effect of Algae scenario
+fx_algae <- function(scenario, ...) {
+  efx_r <- "r" %in% scenario@endpoints
+  # TODO move to a validate_scenario function, this takes precious time on every effect() call
+  if(efx_r & has_transfer(scenario))
+    stop("endpoint r is incompatible with biomass transfers")
+
+  out <- simulate(scenario, ...)
+
+  efx <- c("A"=tail(out$A, 1))
+  if(efx_r) # we skip the log() operation if we can
+    efx["r"] <- log(tail(out$A,1) / out$A[1]) / (tail(out[,1],1) - out[1,1])
+
+  efx
+}
+
+#' @include fx.R
+#' @describeIn fx Effect at end of simulation of [Algae-models]
+setMethod("fx", "Algae", function(scenario, ...) fx_algae(scenario, ...))
